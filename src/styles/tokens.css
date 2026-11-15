@@ -1,0 +1,23 @@
+:root {
+  /* Warna */
+  --paper: #F3ECDD; /* latar utama */
+  --paper-2: #E9E0CC; /* permukaan kedua, kartu */
+  --ink: #1B1915; /* teks, garis, latar layar kamera */
+  --ink-2: #4A453C; /* teks sekunder */
+  --booth-red: #C63A24; /* aksen utama: CTA, tanda aktif */
+  --curtain: #5B1A17; /* tirai (landing/transisi saja) */
+  --flash: #FFD93B; /* HANYA untuk efek flash dan highlight kecil */
+
+  /* Bentuk */
+  --radius: 4px; /* default. Bukan 16px, bukan pill */
+  --line: 2px; /* tebal garis standar */
+  --shadow-hard: 4px 4px 0 var(--ink);
+  --shadow-hard-sm: 2px 2px 0 var(--ink);
+
+  /* Gerak */
+  --t-fast: 120ms;
+  --t-base: 240ms;
+  --t-slow: 600ms;
+  --ease-out: cubic-bezier(0.2, 0.8, 0.2, 1);
+  --ease-snap: cubic-bezier(0.3, 1.6, 0.5, 1); /* overshoot untuk countdown */
+}

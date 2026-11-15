@@ -12,7 +12,7 @@ Legenda: **AC** = acceptance criteria.
   Next.js (App Router), TypeScript strict, Tailwind, ESLint, Prettier, pnpm, Vitest, Playwright.
   **AC:** `pnpm dev`, `build`, `lint`, `typecheck`, `test` semuanya jalan tanpa error.
 
-- [ ] **T0.2 Design tokens dan font**
+- [x] **T0.2 Design tokens dan font**
   Buat `src/styles/tokens.css` sesuai `DESIGN.md` §2. Muat Fraunces, Archivo, IBM Plex Mono lewat `next/font`. Petakan token ke tema Tailwind dan nonaktifkan palet bawaan.
   **AC:** halaman uji menampilkan ketiga font dan kelima warna. `grep` palet Tailwind bawaan di `src/` kosong.
 
