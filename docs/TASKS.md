@@ -16,7 +16,7 @@ Legenda: **AC** = acceptance criteria.
   Buat `src/styles/tokens.css` sesuai `DESIGN.md` §2. Muat Fraunces, Archivo, IBM Plex Mono lewat `next/font`. Petakan token ke tema Tailwind dan nonaktifkan palet bawaan.
   **AC:** halaman uji menampilkan ketiga font dan kelima warna. `grep` palet Tailwind bawaan di `src/` kosong.
 
-- [ ] **T0.3 Template seed**
+- [x] **T0.3 Template seed**
   Skrip `scripts/make-seed.ts` yang menghasilkan 2 PNG transparan + JSON: strip 1×6 (1200×3600) dan grid 2×3 (1200×1800), di `public/seed/`.
   **AC:** kedua JSON lolos validasi Zod (dibuat di T2.1) dan semua slot berada dalam canvas.
 
