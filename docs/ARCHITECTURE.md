@@ -1,0 +1,237 @@
+# ARCHITECTURE — Web Photobooth
+
+> Cara membangun. Aturan privasi di bagian 2 adalah **constraint keras**: tidak boleh dilanggar demi alasan apa pun, termasuk kemudahan implementasi.
+
+## 1. Stack
+
+| Lapisan | Pilihan |
+|---|---|
+| Framework | Next.js (App Router) + TypeScript `strict` |
+| Styling | Tailwind CSS, dipetakan ke design tokens (`DESIGN.md`) |
+| State sesi | Zustand atau `useReducer`, **hanya di memori** |
+| Validasi | Zod |
+| Metadata template | Cloudflare D1 (SQLite) |
+| File template | Cloudflare R2 |
+| Deploy | Cloudflare (Workers/Pages via `@opennextjs/cloudflare`). Alternatif: Vercel + Supabase jika Cloudflare menyulitkan |
+| Test | Vitest (unit), Playwright (e2e, kamera palsu) |
+
+## 2. Aturan privasi (HARD RULES)
+
+1. **Tidak ada request jaringan yang membawa data foto user.** Tidak ada `fetch`/`XHR`/`sendBeacon`/WebSocket dengan body berisi gambar dari kamera atau galeri user.
+2. **Tidak ada persistensi foto.** Dilarang menyimpan foto atau turunannya (blob URL, dataURL, ImageBitmap) ke `localStorage`, `sessionStorage`, `IndexedDB`, Cache API, cookie, atau service worker.
+3. **Tidak ada kebocoran lewat tooling.** Logging, error reporting, dan analitik dilarang memuat data gambar atau blob URL. Analitik (jika ada) hanya hitungan agregat tanpa identitas, mis. "template X dipilih".
+4. **Pelepasan memori eksplisit.** Lihat modul `session/wipe.ts` di bagian 7.
+5. **Pembatasan di level browser.** CSP `connect-src 'self'` dan tanpa pihak ketiga yang bisa menerima data.
+6. **Terverifikasi.** Test e2e wajib membuktikan poin 1 dan 2 (lihat `TASKS.md` T3.8).
+
+Satu-satunya hal yang boleh disimpan di `localStorage`: preferensi non-foto (mis. suara aktif/mati).
+
+## 3. Diagram
+
+```
+                ┌──────────────────────── BROWSER USER ────────────────────────┐
+                │  getUserMedia → <video> → captureFrame → ImageBitmap[] (RAM) │
+                │                                   │                          │
+                │          template JSON + overlay ─┤                          │
+                │                                   ▼                          │
+                │                          renderStrip (Canvas)                │
+                │                                   ▼                          │
+                │                       Blob → unduh / Web Share               │
+                │                                   ▼                          │
+                │                        wipe() — lepas semua                  │
+                └───────────────▲──────────────────────────────────────────────┘
+                                │ hanya GET template (JSON + PNG overlay)
+                      ┌─────────┴──────────┐
+                      │  Next.js (Edge)    │──── D1 (metadata)
+                      │  /api/*            │──── R2 (PNG overlay)
+                      └─────────▲──────────┘
+                                │ (cookie sesi, HTTPS)
+                         ┌──────┴───────┐
+                         │ ADMIN        │ upload PNG, edit slot, publish
+                         └──────────────┘
+```
+
+## 4. Struktur folder
+
+```
+/
+├─ AGENTS.md
+├─ docs/                      SPEC, ARCHITECTURE, DESIGN, AI-SLOP, TASKS
+├─ migrations/                SQL D1
+├─ public/seed/               template contoh untuk dev
+├─ scripts/                   make-seed.ts, dll
+├─ src/
+│  ├─ app/
+│  │  ├─ page.tsx             landing
+│  │  ├─ booth/page.tsx       alur user
+│  │  ├─ privasi/page.tsx
+│  │  ├─ admin/
+│  │  │  ├─ login/page.tsx
+│  │  │  ├─ page.tsx          daftar template
+│  │  │  └─ templates/[id]/page.tsx   editor
+│  │  └─ api/
+│  │     ├─ templates/route.ts
+│  │     ├─ templates/[id]/overlay/route.ts
+│  │     └─ admin/...
+│  ├─ features/
+│  │  ├─ camera/              useCamera, captureFrame, errors
+│  │  ├─ compositor/          cover.ts, render.ts, export.ts
+│  │  ├─ session/             store.ts, wipe.ts, idle.ts
+│  │  ├─ templates/           types.ts, schema.ts, client.ts
+│  │  └─ admin/               slot-editor/, auto-detect.ts
+│  ├─ components/             UI bersama
+│  ├─ lib/                    db.ts, r2.ts, auth.ts
+│  └─ styles/tokens.css
+└─ tests/                     unit/, e2e/
+```
+
+## 5. Model data
+
+### Tipe
+
+```ts
+export type Slot = {
+  x: number; y: number;   // pojok kiri-atas sebelum rotasi, dalam piksel canvas template
+  w: number; h: number;
+  rotate: number;         // derajat, 0 default, searah jarum jam
+};
+
+export type Template = {
+  id: string;
+  name: string;
+  canvas: { w: number; h: number };
+  slots: Slot[];          // urutan array = urutan pengambilan foto
+  overlayKey: string;     // kunci objek di R2
+  background: string;     // warna hex di belakang foto, default "#ffffff"
+  published: boolean;
+  sort: number;
+};
+```
+
+### D1
+
+```sql
+CREATE TABLE templates (
+  id          TEXT PRIMARY KEY,
+  name        TEXT NOT NULL,
+  canvas_w    INTEGER NOT NULL,
+  canvas_h    INTEGER NOT NULL,
+  slots_json  TEXT NOT NULL,
+  overlay_key TEXT NOT NULL,
+  background  TEXT NOT NULL DEFAULT '#ffffff',
+  published   INTEGER NOT NULL DEFAULT 0,
+  sort        INTEGER NOT NULL DEFAULT 0,
+  created_at  TEXT NOT NULL,
+  updated_at  TEXT NOT NULL
+);
+CREATE INDEX idx_templates_pub_sort ON templates (published, sort);
+```
+
+## 6. API
+
+| Method | Path | Auth | Fungsi |
+|---|---|---|---|
+| GET | `/api/templates` | publik | Daftar template published (tanpa data admin) |
+| GET | `/api/templates/:id/overlay` | publik | Stream PNG overlay dari R2, `Cache-Control: public, max-age=3600` |
+| POST | `/api/admin/login` | — | Login, set cookie `httpOnly; Secure; SameSite=Lax` |
+| POST | `/api/admin/logout` | admin | Hapus sesi |
+| GET | `/api/admin/templates` | admin | Semua template termasuk draft |
+| POST | `/api/admin/templates` | admin | Buat template (multipart: PNG + JSON) |
+| PUT | `/api/admin/templates/:id` | admin | Ubah metadata/slot, atau ganti PNG |
+| PATCH | `/api/admin/templates/reorder` | admin | Simpan urutan |
+| DELETE | `/api/admin/templates/:id` | admin | Hapus template + objek R2 |
+
+Catatan penting:
+- **Overlay wajib disajikan same-origin** lewat rute di atas. Jika PNG dimuat dari domain lain tanpa CORS, canvas menjadi *tainted* dan `toBlob()` gagal. Jangan arahkan klien langsung ke URL R2.
+- Semua input admin divalidasi dengan Zod di server. Validasi file: MIME + magic bytes PNG, ada kanal alpha, ukuran ≤ 8 MB, dimensi ≤ 4000×6000.
+- Login dibatasi rate (mis. 5 percobaan / 10 menit / IP).
+
+## 7. Modul inti
+
+### 7.1 Kamera (`features/camera`)
+- `useCamera({ facingMode })` mengembalikan `{ videoRef, status, error, start, stop, switchCamera, devices }`.
+- Constraint awal: `facingMode: "user"`, `width/height ideal 1920×1080`.
+- Tipe error dibedakan: `denied`, `not-found`, `in-use`, `insecure-context`, `unknown`. Tiap tipe punya pesan UI sendiri.
+- `stop()` wajib memanggil `track.stop()` pada semua track dan membersihkan `srcObject`.
+- Preview dicerminkan dengan CSS `scaleX(-1)`. Frame yang disimpan **tidak** dicerminkan (default), bisa diubah lewat opsi `mirrorOutput`.
+
+### 7.2 Capture
+`captureFrame(video, targetAspect, maxSide=1920): Promise<ImageBitmap>`
+1. Hitung area potong dari `videoWidth/videoHeight` agar rasionya = `targetAspect` (center crop).
+2. Gambar ke canvas, batasi sisi terpanjang ke `maxSide`.
+3. Kembalikan `ImageBitmap`. Foto sudah terpotong sesuai slot, jadi memori hemat.
+
+### 7.3 Compositor (`features/compositor`)
+```ts
+renderStrip({ template, overlay, photos, scale = 1 }): HTMLCanvasElement
+```
+Urutan layer:
+1. Isi `background`.
+2. Untuk tiap slot: `save` → translate ke pusat slot → rotate → clip persegi → `drawImage` cover-crop → `restore`.
+3. Gambar `overlay` di (0,0) seukuran canvas, di atas foto.
+
+Cover-crop: `s = max(slot.w / srcW, slot.h / srcH)`; ukuran gambar = `srcW*s × srcH*s`; pusatkan.
+Ekspor: `exportBlob(canvas, "png" | "jpeg", quality = 0.92)`.
+Preview di layar boleh memakai `scale` < 1. Unduhan selalu `scale = 1`.
+
+### 7.4 Sesi dan wipe (`features/session`)
+State machine eksplisit: `idle → choosing → permission → capturing → reviewing → done`.
+
+`wipe()` harus:
+1. Menutup semua `ImageBitmap` (`bitmap.close()`).
+2. Me-`revokeObjectURL` semua blob URL.
+3. Mengosongkan canvas (`width = height = 0`).
+4. Menghentikan stream kamera.
+5. Mereset store ke state awal.
+
+Pemicu: tombol Selesai, idle timeout (`idle.ts`), `pagehide`, dan ganti template/mulai ulang.
+
+### 7.5 Deteksi slot otomatis (`features/admin/auto-detect.ts`)
+1. Muat overlay ke canvas, perkecil agar sisi terpanjang ≤ 800 px.
+2. Buat mask piksel dengan `alpha ≤ 16`.
+3. Labeli komponen terhubung (4-neighbour).
+4. Ambil bounding box tiap komponen. Buang yang luasnya < 1,5% luas canvas.
+5. Urutkan *reading order* (atas→bawah, kiri→kanan, toleransi baris ±2% tinggi).
+6. Skalakan kembali ke koordinat canvas asli.
+7. Jika komponen tidak persegi (rasio isi < 0,9), tetap pakai bounding box dan beri peringatan di UI. Admin mengoreksi manual.
+
+### 7.6 Autentikasi admin
+- Kredensial dari environment (`ADMIN_PASSWORD_HASH`, argon2/bcrypt), tanpa tabel user.
+- Sesi: cookie bertanda tangan (`SESSION_SECRET`), `httpOnly`, `Secure`, `SameSite=Lax`, kedaluwarsa 12 jam.
+- Middleware melindungi `/admin/*` dan `/api/admin/*`.
+- Alternatif yang lebih ringan: Cloudflare Access di depan `/admin`.
+
+## 8. Header keamanan
+
+```
+Content-Security-Policy:
+  default-src 'self';
+  img-src 'self' blob: data:;
+  media-src 'self' blob:;
+  connect-src 'self';
+  script-src 'self';          (tambahkan nonce sesuai kebutuhan Next.js)
+  style-src 'self' 'unsafe-inline';
+  font-src 'self';
+  frame-ancestors 'none';
+Permissions-Policy: camera=(self), microphone=(), geolocation=()
+Referrer-Policy: same-origin
+X-Content-Type-Options: nosniff
+```
+
+## 9. Environment
+
+```
+ADMIN_PASSWORD_HASH=
+SESSION_SECRET=
+# Binding Cloudflare (wrangler.toml): DB (D1), TEMPLATES_BUCKET (R2)
+```
+
+## 10. Strategi test
+
+- **Unit:** matematika cover-crop, auto-detect pada gambar sintetis, validasi Zod, state machine sesi.
+- **Compositor:** pembanding piksel (toleransi kecil) untuk template seed.
+- **E2E (Playwright, Chromium dengan `--use-fake-device-for-media-stream --use-fake-ui-for-media-stream`):**
+  - Alur penuh sampai unduh.
+  - Selama alur, tidak ada request dengan body gambar.
+  - Setelah "Selesai": `localStorage`, `sessionStorage`, IndexedDB, Cache Storage kosong dari data foto.
+- **Manual:** matriks perangkat di `TASKS.md` T5.6.
