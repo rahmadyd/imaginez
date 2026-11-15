@@ -28,7 +28,7 @@ Legenda: **AC** = acceptance criteria.
 
 ## Fase 1 — Kamera dan capture
 
-- [ ] **T1.1 `useCamera`**
+- [x] **T1.1 `useCamera`**
   Start/stop, `facingMode`, ganti kamera, status, dan error bertipe (`denied`, `not-found`, `in-use`, `insecure-context`, `unknown`).
   **AC:** `stop()` menghentikan semua track. Setiap tipe error menghasilkan state yang bisa dibedakan. Dites dengan mock `getUserMedia`.
 
