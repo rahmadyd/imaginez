@@ -20,7 +20,7 @@ Legenda: **AC** = acceptance criteria.
   Skrip `scripts/make-seed.ts` yang menghasilkan 2 PNG transparan + JSON: strip 1×6 (1200×3600) dan grid 2×3 (1200×1800), di `public/seed/`.
   **AC:** kedua JSON lolos validasi Zod (dibuat di T2.1) dan semua slot berada dalam canvas.
 
-- [ ] **T0.4 Header keamanan**
+- [x] **T0.4 Header keamanan**
   Terapkan CSP, Permissions-Policy, Referrer-Policy sesuai `ARCHITECTURE.md` §8.
   **AC:** respons memuat semua header. Halaman tetap berfungsi (font, gambar, kamera) dengan CSP aktif.
 

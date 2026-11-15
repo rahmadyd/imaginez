@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { connection } from "next/server";
 import { fontDisplay, fontBody, fontMono } from "@/styles/fonts";
 import "./globals.css";
 
@@ -7,11 +8,14 @@ export const metadata: Metadata = {
   description: "Foto strip, tanpa jejak. Diproses di perangkatmu.",
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  // Nonce CSP dihasilkan per request, jadi render tidak boleh diprasasti.
+  await connection();
+
   return (
     <html
       lang="id"
