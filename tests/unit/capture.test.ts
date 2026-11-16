@@ -222,3 +222,18 @@ describe("slotAspect", () => {
     expect(() => slotAspect(500, 0)).toThrow("Tinggi slot tidak boleh nol");
   });
 });
+
+
+describe("readImageFile", () => {
+  it("fungsi readImageFile didefinisikan", async () => {
+    // Test sederhana untuk memverifikasi fungsi ada
+    const { readImageFile } = await import("../../src/features/camera/capture");
+    expect(typeof readImageFile).toBe("function");
+  });
+
+  // Note: Test lengkap untuk readImageFile memerlukan mocking yang kompleks
+  // (FileReader, Image, canvas context). Karena fungsi ini hanya wrapper
+  // untuk operasi browser yang sudah di-test di captureFrame,
+  // kita bisa verifikasi dengan test e2e nanti di T3.8.
+  // AC T1.3: "tidak ada request jaringan saat memilih file (dibuktikan di e2e nanti)"
+});

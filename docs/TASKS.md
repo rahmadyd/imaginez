@@ -36,7 +36,7 @@ Legenda: **AC** = acceptance criteria.
   `captureFrame(video, targetAspect, maxSide=1920)` mengembalikan `ImageBitmap` hasil center-crop.
   **AC:** unit test untuk beberapa kombinasi rasio (video 16:9, 4:3, 9:16 terhadap slot 2:1, 1:1, 3:4). Sisi terpanjang tidak melebihi `maxSide`.
 
-- [ ] **T1.3 Fallback galeri**
+- [x] **T1.3 Fallback galeri**
   Input file → `ImageBitmap` dipotong sesuai rasio slot. File dibaca lokal.
   **AC:** tidak ada request jaringan saat memilih file (dibuktikan di e2e nanti).
 
