@@ -62,13 +62,14 @@ Landing → Pilih template → Izin kamera → Capture (N foto) → Review → U
 | FR-U1 | Menampilkan template berstatus published, urut `sort`, dengan preview strip. |
 | FR-U2 | Memilih template menentukan jumlah slot dan rasio aspek tiap slot. |
 | FR-U3 | Sebelum prompt izin browser, tampilkan penjelasan singkat bahwa foto tidak disimpan. |
-| FR-U4 | Capture berurutan: countdown (default 3 detik), flash, jeda ±1,2 detik antar foto, sampai semua slot terisi. |
+| FR-U4 | Capture berurutan: countdown (default 3 detik), flash, jeda A�1,2 detik antar foto, sampai semua slot terisi. |
 | FR-U5 | Preview kamera dipotong sesuai rasio slot yang sedang diisi, supaya apa yang terlihat = apa yang masuk strip. |
 | FR-U6 | Review menampilkan strip hasil penuh. User bisa mengulang satu slot atau semua slot. |
 | FR-U7 | Unduh PNG pada resolusi penuh template. Pakai Web Share jika tersedia (penting untuk iOS). |
 | FR-U8 | Jika kamera tidak tersedia/ditolak, tawarkan pilih foto dari galeri (file dibaca lokal, tidak diunggah). |
 | FR-U9 | Hapus sesi saat: tombol "Selesai", idle timeout (default 3 menit), `pagehide`. |
 | FR-U10 | Ada penjelasan privasi singkat yang bisa dibuka dari layar mana pun. |
+| FR-U13 | Pemilihan kamera: di perangkat mobile/tablet (deteksi pointer coarse + maxTouchPoints > 0) default kamera **depan** dengan tombol beralih ke **belakang** dan sebaliknya; di desktop/laptop user dapat memilih kamera dari daftar (`videoinput`) termasuk webcam eksternal/virtual. Pemilihan/pengalihan dinonaktifkan saat countdown atau mengambil foto. Preview kamera depan dicerminkan; kamera belakang tidak dicerminkan. Hasil unduhan tidak dicerminkan (mengikuti ARCHITECTURE §7.1). Preferensi non-foto (mis. kamera terakhir/mode) boleh disimpan di `localStorage` dengan kunci yang tidak memuat data foto. |
 
 ### Admin
 | ID | Requirement |

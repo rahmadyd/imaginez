@@ -149,11 +149,12 @@ Catatan penting:
 ## 7. Modul inti
 
 ### 7.1 Kamera (`features/camera`)
-- `useCamera({ facingMode })` mengembalikan `{ videoRef, status, error, start, stop, switchCamera, devices }`.
-- Constraint awal: `facingMode: "user"`, `width/height ideal 1920×1080`.
-- Tipe error dibedakan: `denied`, `not-found`, `in-use`, `insecure-context`, `unknown`. Tiap tipe punya pesan UI sendiri.
-- `stop()` wajib memanggil `track.stop()` pada semua track dan membersihkan `srcObject`.
-- Preview dicerminkan dengan CSS `scaleX(-1)`. Frame yang disimpan **tidak** dicerminkan (default), bisa diubah lewat opsi `mirrorOutput`.
+- Deteksi mode: **mobile** jika `matchMedia('(pointer: coarse)').matches && navigator.maxTouchPoints > 0`; selain itu **desktop**. **Jangan** menentukan mode dari user agent. Fungsi deteksi dibuat murni dan di-unit-test (mock `matchMedia`/`navigator`). Jika stream aktif namun `track.getSettings().facingMode` kosong, perlakukan sebagai **desktop** (tampilkan pemilih daftar). Tombol depan/belakang hanya muncul jika perangkat benar-benar punya lebih dari satu kamera.
+- `useCamera` (API target): memperluas ke `{ videoRef, status, error, start, stop, mode, facing ("user"|"environment"), devices, activeDeviceId, switchFacing(), selectDevice(id), refreshDevices() }` (nama final bisa disesuaikan dengan implementasi, tetap terdokumentasi di kode). `devices` adalah daftar `videoinput` (`enumerateDevices`) setelah izin diberikan (sebelum izin label sering kosong). Jika label kosong, UI menampilkan “Kamera 1”, “Kamera 2”, dst. Dengarkan `devicechange` untuk memperbarui daftar; jika kamera aktif hilang, fallback ke kamera default dan beri tahu pengguna (toast/pesan sesuai UI).
+- Constraint: default mobile = `facingMode: "user"` (depan). Saat beralih depan↔belakang coba `{ exact }` dulu, jika `OverconstrainedError` ulangi dengan `{ ideal }`. Desktop memakai `deviceId: { exact: id }` (dari daftar terpilih). Resolusi ideal `1920×1080` (portrait menyesuaikan di mobile). `captureFrame` tetap center-crop ke `layout.captureAspect`.
+- Tipe error dibedakan: `denied`, `not-found`, `in-use` (`NotReadableError`/serupa), `insecure-context`, `unknown`. Tambahan konteks browser in-app: deteksi via user agent **hanya** untuk menampilkan petunjuk “Buka di Chrome atau Safari” bila `getUserMedia` gagal, **bukan** untuk menentukan mode kamera.
+- `stop()`/pindah/pilih kamera: hentikan semua track lama (`track.stop()`) sebelum membuka stream baru; semua track dihentikan pada `wipe()`. Pindah/pilih **dinonaktifkan** saat countdown atau pengambilan foto berlangsung; foto yang sudah diambil tetap (boleh dari kamera berbeda).
+- Preview: mobile – kamera depan dicerminkan dengan CSS `scaleX(-1)`, kamera belakang **tidak** dicerminkan. Desktop – toggle “Cermin preview” default **aktif** (hanya visual; tidak mengubah hasil unduhan). Frame yang disimpan **tidak** dicerminkan pada alur normal (aturan tetap). Preferensi non-foto boleh disimpan di `localStorage` kunci `pb:camera` (hanya mode/facing/deviceId; tanpa data foto). Jika `deviceId` tersimpan tidak ada lagi, abaikan.
 
 ### 7.2 Capture
 `captureFrame(video, targetAspect, maxSide=1920): Promise<ImageBitmap>`

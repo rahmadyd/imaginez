@@ -99,7 +99,7 @@ Semua layar mobile-first (360–430 px), lalu diperlebar untuk desktop. Di deskt
   - "Fotomu tidak dikirim ke mana pun."
   - "Hilang waktu kamu tekan Selesai."
 - CTA: **"Izinkan kamera"**. Tautan kecil: "Pakai foto dari galeri".
-- Keadaan ditolak: panduan singkat membuka izin sesuai browser + tombol "Coba lagi" + opsi galeri.
+- Keadaan ditolak: panduan singkat membuka izin sesuai browser + tombol "Coba lagi" + opsi galeri. Jika kegagalan terkait browser dalam aplikasi (Instagram/Facebook/TikTok/Line dll.), tampilkan petunjuk singkat “Buka di Chrome atau Safari” (deteksi user agent hanya untuk petunjuk ini).
 
 ### S3 — Capture
 - Latar `--ink` layar penuh.
@@ -107,7 +107,12 @@ Semua layar mobile-first (360–430 px), lalu diperlebar untuk desktop. Di deskt
 - Atas: `SlotProgress` (N bingkai kecil: kosong / aktif / terisi dengan thumbnail) dan penghitung mono `02/06`.
 - Countdown: angka Fraunces raksasa di tengah, tiap angka masuk dengan `--ease-snap`.
 - Flash: lapisan `--flash`→putih, 120 ms, lalu thumbnail foto "terbang" ke bingkai progress.
-- Bawah: tombol **shutter** (cincin `--booth-red`, inti `--ink`, bayangan keras), toggle mode **Otomatis/Manual**, tombol "Batal", dan tombol balik kamera jika ada >1 kamera.
+- Bawah: tombol **shutter** (cincin `--booth-red`, inti `--ink`, bayangan keras), toggle mode **Otomatis/Manual**, tombol "Batal".
+- **Pilihan kamera (wajib ritual AI-SLOP):**
+  - **Mobile/tablet** (coarse pointer + maxTouchPoints): tombol **“Balik kamera”** (ikon khusus, bukan emoji/bawaan Lucide tak dikustomisasi; konsisten stroke 2 px, ujung persegi) dekat shutter, mudah dijangkau jempol, target sentuh ≥ 48×48 px. Hanya tampil jika ada >1 kamera. Label mikro bisa “Kamera depan” / “Kamera belakang” sesuai state.
+  - **Desktop/laptop:** kontrol **“Kamera”** membuka menu/dialog daftar `videoinput` (nama dari label; jika kosong “Kamera 1”, “Kamera 2”, …), item aktif ditandai jelas. Termasuk webcam eksternal/virtual. Toggle **“Cermin preview”** default **aktif** (tidak memengaruhi unduhan).
+- Preview: mobile depan = mirror (`scaleX(-1)`), belakang = tidak mirror. Desktop mengikuti toggle cermin. Hasil unduhan selalu tidak dicerminkan.
+- Perubahan/pemilihan kamera **dinonaktifkan** selama countdown dan saat mengambil foto. Foto di nampan boleh dari kamera berbeda.
 - Mode Otomatis: sekali tekan mulai, semua slot diambil berurutan.
 
 ### S4 — Review
