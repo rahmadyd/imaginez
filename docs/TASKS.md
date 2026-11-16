@@ -32,7 +32,7 @@ Legenda: **AC** = acceptance criteria.
   Start/stop, `facingMode`, ganti kamera, status, dan error bertipe (`denied`, `not-found`, `in-use`, `insecure-context`, `unknown`).
   **AC:** `stop()` menghentikan semua track. Setiap tipe error menghasilkan state yang bisa dibedakan. Dites dengan mock `getUserMedia`.
 
-- [ ] **T1.2 `captureFrame`**
+- [x] **T1.2 `captureFrame`**
   `captureFrame(video, targetAspect, maxSide=1920)` mengembalikan `ImageBitmap` hasil center-crop.
   **AC:** unit test untuk beberapa kombinasi rasio (video 16:9, 4:3, 9:16 terhadap slot 2:1, 1:1, 3:4). Sisi terpanjang tidak melebihi `maxSide`.
 

@@ -15,7 +15,9 @@ export const fontBody = Archivo({
 });
 
 export const fontMono = IBM_Plex_Mono({
-  variable: "--font-mono",
+  // Bukan "--font-mono": nama itu dipakai token tema Tailwind sehingga
+  // deklarasinya akan merujuk dirinya sendiri.
+  variable: "--font-plex-mono",
   subsets: ["latin"],
   display: "swap",
   weight: ["400", "500"],

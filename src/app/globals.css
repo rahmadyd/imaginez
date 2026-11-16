@@ -18,7 +18,7 @@
   /* Tipografi */
   --font-display: var(--font-fraunces), serif;
   --font-body: var(--font-archivo), sans-serif;
-  --font-mono: var(--font-mono), monospace;
+  --font-mono: var(--font-plex-mono), monospace;
 
   /* Bentuk */
   --radius: var(--radius);
