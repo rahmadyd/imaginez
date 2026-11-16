@@ -138,9 +138,10 @@ Fungsional, lebih padat, tanpa hiasan tirai. Memakai token yang sama (kertas, ti
 - **Daftar template:** baris berisi thumbnail, nama, jumlah slot, toggle publish, handle drag untuk urutan, tombol edit/hapus. Hapus memakai dialog konfirmasi.
 - **Editor (3 panel di desktop):**
   - Kiri: daftar slot (urutan = urutan capture, bisa drag).
-  - Tengah: kanvas dengan overlay + slot. Zoom/pan. Tiap slot diberi badge nomor.
-  - Kanan: properti (nama, background, x/y/w/h/rotasi numerik, tombol "Deteksi otomatis", toggle "Preview foto dummy", tombol Simpan, Publish).
+  - Tengah: kanvas dengan layer template + slot. Zoom/pan. Tiap slot diberi badge nomor.
+  - Kanan: properti (nama, background, x/y/w/h/rotasi/radius numerik, `bleed` saat mode template-di-depan aktif, tombol "Deteksi otomatis", toggle "Preview foto dummy", tombol "Lubangi otomatis"/"Hapus lubang otomatis", toggle "Lihat tanpa foto" (pola kotak-kotak transparan), tombol Simpan, Publish).
 - Interaksi slot: drag, resize via handle, rotasi via handle, snap 8 px, panah = geser 1 px (Shift = 10 px), `Delete` menghapus, `Ctrl/Cmd+D` menggandakan.
+- Mode template-di-depan: "Lubangi otomatis" aktif jika ada layer bawah (PNG utuh) dan ≥1 slot; menyimpan PNG asli sebagai layer bawah dan menghasilkan layer atas berlubang. Tampilkan peringatan bahwa stiker/teks yang menimpa area slot ikut terhapus (sediakan jalur unggah layer atas transparan buatan sendiri). "Hapus lubang otomatis" mengembalikan keadaan semula. "Lihat tanpa foto" menampakkan lubang dengan pola papan-catur.
 - Peringatan bila ada perubahan belum tersimpan saat keluar halaman.
 - Di mobile: editor hanya baca + toggle publish; edit slot dianjurkan di desktop (tampilkan catatan).
 

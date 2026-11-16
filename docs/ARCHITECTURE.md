@@ -94,6 +94,7 @@ export type Slot = {
   x: number; y: number;   // pojok kiri-atas sebelum rotasi, dalam piksel canvas template
   w: number; h: number;
   rotate: number;         // derajat, 0 default, searah jarum jam
+  radius?: number;        // px, radius sudut clip slot (default 0)
 };
 
 export type Template = {
@@ -101,7 +102,9 @@ export type Template = {
   name: string;
   canvas: { w: number; h: number };
   slots: Slot[];          // urutan array = urutan pengambilan foto
-  overlayKey: string;     // kunci objek di R2
+  overlayKey: string;     // kunci objek overlay/layer atas (transparan di area slot)
+  baseLayerKey?: string;  // kunci PNG utuh asli (layer bawah), ada jika mode template-di-depan aktif
+  bleed?: number;         // px, perluasan foto di bawah bingkai (default 0; efektif hanya jika ada layer atas)
   background: string;     // warna hex di belakang foto, default "#ffffff"
   published: boolean;
   sort: number;
@@ -112,20 +115,24 @@ export type Template = {
 
 ```sql
 CREATE TABLE templates (
-  id          TEXT PRIMARY KEY,
-  name        TEXT NOT NULL,
-  canvas_w    INTEGER NOT NULL,
-  canvas_h    INTEGER NOT NULL,
-  slots_json  TEXT NOT NULL,
-  overlay_key TEXT NOT NULL,
-  background  TEXT NOT NULL DEFAULT '#ffffff',
-  published   INTEGER NOT NULL DEFAULT 0,
-  sort        INTEGER NOT NULL DEFAULT 0,
-  created_at  TEXT NOT NULL,
-  updated_at  TEXT NOT NULL
+  id             TEXT PRIMARY KEY,
+  name           TEXT NOT NULL,
+  canvas_w       INTEGER NOT NULL,
+  canvas_h       INTEGER NOT NULL,
+  slots_json     TEXT NOT NULL,
+  overlay_key    TEXT NOT NULL,
+  base_layer_key TEXT,
+  bleed          INTEGER NOT NULL DEFAULT 0,
+  background     TEXT NOT NULL DEFAULT '#ffffff',
+  published      INTEGER NOT NULL DEFAULT 0,
+  sort           INTEGER NOT NULL DEFAULT 0,
+  created_at     TEXT NOT NULL,
+  updated_at     TEXT NOT NULL
 );
 CREATE INDEX idx_templates_pub_sort ON templates (published, sort);
 ```
+
+Kolom `base_layer_key` dan `bleed` ditambahkan untuk mode template-di-depan; migrasi harus backward-compatible (`ALTER TABLE ... ADD COLUMN` / default).
 
 ## 6. API
 
@@ -164,14 +171,17 @@ Catatan penting:
 
 ### 7.3 Compositor (`features/compositor`)
 ```ts
-renderStrip({ template, overlay, photos, scale = 1 }): HTMLCanvasElement
+renderStrip({ template, photos, overlay, baseLayer?, options? }): HTMLCanvasElement
 ```
 Urutan layer:
 1. Isi `background`.
-2. Untuk tiap slot: `save` → translate ke pusat slot → rotate → clip persegi → `drawImage` cover-crop → `restore`.
-3. Gambar `overlay` di (0,0) seukuran canvas, di atas foto.
+2. Jika `baseLayer` ada (mode template-di-depan), gambar `baseLayer` di (0,0) seukuran canvas.
+3. Untuk tiap slot: `save` → translate ke pusat slot → rotate → clip bentuk slot (persegi/rounded sesuai `slot.radius`) → `drawImage` cover-crop → `restore`. Jika ada layer atas (`baseLayer`/mode lubang) dan `template.bleed > 0`, foto digambar pada area `slot + bleed` (ke semua sisi, ter-clamp agar tidak melewati canvas) dan clip diperluas sesuai `radius + bleed` supaya tepi foto tersembunyi di bawah bingkai. Tanpa layer atas, `bleed` diabaikan.
+4. Gambar `overlay` (layer atas/transparan di area slot) di (0,0) seukuran canvas.
 
-Cover-crop: `s = max(slot.w / srcW, slot.h / srcH)`; ukuran gambar = `srcW*s × srcH*s`; pusatkan.
+`overlay`/`baseLayer` dimuat same-origin via API. Untuk template biasa (tanpa `baseLayerKey`) perilaku tetap: foto di bawah, overlay di atas.
+
+Cover-crop: `s = max(drawW / srcW, drawH / srcH)`; ukuran gambar = `srcW*s × srcH*s`; pusatkan.
 Ekspor: `exportBlob(canvas, "png" | "jpeg", quality = 0.92)`.
 Preview di layar boleh memakai `scale` < 1. Unduhan selalu `scale = 1`.
 

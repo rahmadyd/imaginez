@@ -81,6 +81,7 @@ Landing → Pilih template → Izin kamera → Capture (N foto) → Review → U
 | FR-A5 | Preview template dengan foto dummy sebelum publish. |
 | FR-A6 | Publish/unpublish, reorder, rename, ganti PNG, hapus. |
 | FR-A7 | Validasi sebelum simpan: ≥1 slot, semua slot di dalam canvas, nama tidak kosong. |
+| FR-A8 | Mode "Template di depan foto" (opsional per template): dari PNG utuh (layer bawah, mis. ekspor Canva dengan placeholder), admin dapat melubangi area slot di browser menjadi layer atas transparan (`overlayKey`) sementara PNG asli disimpan sebagai layer bawah (`baseLayerKey`). Foto digambar dengan `bleed` di bawah bingkai agar tepi tertutup; tanpa layer atas, `bleed` diabaikan. Slot dapat memiliki `radius` sudut. |
 
 ## 8. Non-fungsional
 
