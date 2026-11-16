@@ -1,8 +1,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import zlib from "node:zlib";
-import { templateSchema } from "../src/features/templates/schema";
-import type { Slot, Template } from "../src/features/templates/types";
+import { seedTemplateSchema, type Slot, type SeedTemplate } from "../src/features/templates/schema";
 
 // Standard CRC32 table
 const crcTable = new Uint32Array(256);
@@ -102,7 +101,7 @@ function createOverlayPng(
   ]);
 }
 
-const strip1x6Template: Template = {
+const strip1x6Template: SeedTemplate = {
   id: "strip-1x6",
   name: "Strip Klasik 1×6",
   canvas: { w: 1200, h: 3600 },
@@ -120,7 +119,7 @@ const strip1x6Template: Template = {
   sort: 1,
 };
 
-const grid2x3Template: Template = {
+const grid2x3Template: SeedTemplate = {
   id: "grid-2x3",
   name: "Grid Retro 2×3",
   canvas: { w: 1200, h: 1800 },
@@ -142,8 +141,8 @@ export function generateSeeds(
   outDir: string = path.resolve(__dirname, "../public/seed")
 ) {
   // Validasi kedua template dengan Zod sebelum ditulis
-  templateSchema.parse(strip1x6Template);
-  templateSchema.parse(grid2x3Template);
+  seedTemplateSchema.parse(strip1x6Template);
+  seedTemplateSchema.parse(grid2x3Template);
 
   fs.mkdirSync(outDir, { recursive: true });
 

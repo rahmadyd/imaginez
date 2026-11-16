@@ -3,10 +3,19 @@ import path from "node:path";
 import zlib from "node:zlib";
 import { describe, expect, it } from "vitest";
 import {
-  isSlotInsideCanvas,
-  templateSchema,
+  seedTemplateSchema,
+  type SeedTemplate,
 } from "../../src/features/templates/schema";
-import type { Template } from "../../src/features/templates/types";
+
+// Helper untuk memeriksa slot dalam canvas
+function isSlotInsideCanvas(slot: { x: number; y: number; w: number; h: number }, canvas: { w: number; h: number }): boolean {
+  return (
+    slot.x >= 0 &&
+    slot.y >= 0 &&
+    slot.x + slot.w <= canvas.w &&
+    slot.y + slot.h <= canvas.h
+  );
+}
 
 const seedDir = path.resolve(process.cwd(), "public/seed");
 
@@ -61,8 +70,8 @@ function decodePng(filePath: string): DecodedPng {
   };
 }
 
-function loadSeed(id: string): { template: Template; png: DecodedPng } {
-  const template = templateSchema.parse(
+function loadSeed(id: string): { template: SeedTemplate; png: DecodedPng } {
+  const template = seedTemplateSchema.parse(
     JSON.parse(fs.readFileSync(path.join(seedDir, `${id}.json`), "utf-8"))
   );
   const png = decodePng(path.join(seedDir, `${id}.png`));

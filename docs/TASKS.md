@@ -44,7 +44,7 @@ Legenda: **AC** = acceptance criteria.
 
 ## Fase 2 — Compositor
 
-- [ ] **T2.1 Tipe dan skema template**
+- [x] **T2.1 Tipe dan skema template**
   `Template`, `Slot`, skema Zod, helper `slotAspect`.
   **AC:** skema menolak slot di luar canvas, `w/h ≤ 0`, dan template tanpa slot.
 
