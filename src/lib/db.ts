@@ -10,8 +10,12 @@ type Row = Record<string, unknown>;
 
 let supabase: SupabaseClient | null = null;
 
+function getApiKey(): string | undefined {
+  return process.env.SUPABASE_SECRET_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY;
+}
+
 export function isSupabaseConfigured(): boolean {
-  return Boolean(process.env.SUPABASE_URL && process.env.SUPABASE_SERVICE_ROLE_KEY);
+  return Boolean(process.env.SUPABASE_URL && getApiKey());
 }
 
 export function getSupabase(): SupabaseClient {
@@ -19,7 +23,7 @@ export function getSupabase(): SupabaseClient {
   if (!supabase) {
     supabase = createClient(
       process.env.SUPABASE_URL!,
-      process.env.SUPABASE_SERVICE_ROLE_KEY!,
+      getApiKey()!,
       { auth: { persistSession: false, autoRefreshToken: false } }
     );
   }

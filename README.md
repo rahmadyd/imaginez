@@ -29,7 +29,7 @@ Lihat `.env.example`.
    - `migrations/supabase_photo_shares.sql` (tabel `photo_shares` untuk share sementara TTL ~5 menit)
 3. Set env vars di Cloudflare Dashboard → Workers → Settings → Variables and Secrets:
    - `SUPABASE_URL`
-   - `SUPABASE_SERVICE_ROLE_KEY`
+   - `SUPABASE_SECRET_KEY` (new 2026 format `sb_secret_...`; legacy `SUPABASE_SERVICE_ROLE_KEY` juga masih didukung)
    - `SUPABASE_STORAGE_BUCKET`
    - `SESSION_SECRET`
    - `ADMIN_EMAIL`
