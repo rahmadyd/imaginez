@@ -1,43 +1,41 @@
 ﻿import type { AdminTemplate, ClientTemplate, Slot } from "@/features/templates/schema";
-import { getBucket, getSupabase, isSupabaseConfigured, readLocalRows, writeLocalRows, putLocalOverlay, getLocalOverlay, deleteLocalOverlay } from "./db";
-
-type LocalRow = Record<string, unknown>;
+import { getEnv, isD1Configured, isR2Configured, type D1Database, type R2Bucket, readLocalRows, writeLocalRows, putLocalOverlay, getLocalOverlay, deleteLocalOverlay } from "./db";
 
 type TemplateRow = {
   id: string;
   name: string;
   canvas_w: number;
   canvas_h: number;
-  slots_json: string | Slot[];
+  slots_json: string;
   overlay_key: string;
-  base_layer_key?: string | null;
-  bleed?: number | null;
+  base_layer_key: string | null;
+  bleed: number | null;
   background: string;
-  published: boolean | number;
-  is_active?: boolean | number | null;
-  usage_count?: number | null;
+  published: number;
+  is_active: number | null;
+  usage_count: number | null;
   sort: number;
   created_at: string;
   updated_at: string;
 };
 
 function rowToAdmin(row: TemplateRow): AdminTemplate {
-  const slots = typeof row.slots_json === "string" ? (JSON.parse(row.slots_json) as Slot[]) : row.slots_json;
-  const published = row.published === true || row.published === 1;
-  const isActive = row.is_active === true || row.is_active === 1 || (row.is_active == null && published);
+  const slots = JSON.parse(row.slots_json) as Slot[];
+  const published = row.published === 1;
+  const isActive = row.is_active === 1 || (row.is_active == null && published);
   return {
     id: row.id,
     name: row.name,
-    canvas: { w: Number(row.canvas_w), h: Number(row.canvas_h) },
+    canvas: { w: row.canvas_w, h: row.canvas_h },
     slots,
     overlayKey: row.overlay_key,
     baseLayerKey: row.base_layer_key ?? undefined,
-    bleed: Number(row.bleed ?? 0),
+    bleed: row.bleed ?? 0,
     background: row.background,
     published,
     isActive,
-    usageCount: Number(row.usage_count ?? 0),
-    sort: Number(row.sort),
+    usageCount: row.usage_count ?? 0,
+    sort: row.sort,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
   };
@@ -49,13 +47,13 @@ function adminToRow(t: AdminTemplate) {
     name: t.name,
     canvas_w: t.canvas.w,
     canvas_h: t.canvas.h,
-    slots_json: t.slots,
+    slots_json: JSON.stringify(t.slots),
     overlay_key: t.overlayKey,
     base_layer_key: t.baseLayerKey ?? null,
     bleed: t.bleed ?? 0,
     background: t.background,
-    published: t.published,
-    is_active: t.isActive,
+    published: t.published ? 1 : 0,
+    is_active: t.isActive ? 1 : 0,
     usage_count: t.usageCount ?? 0,
     sort: t.sort,
     created_at: t.createdAt,
@@ -70,20 +68,28 @@ export function toClient(t: AdminTemplate): ClientTemplate {
 }
 
 function isRowActive(r: TemplateRow): boolean {
-  if (r.is_active === true || r.is_active === 1) return true;
-  if (r.is_active === false || r.is_active === 0) return false;
-  return r.published === true || r.published === 1;
+  if (r.is_active === 1) return true;
+  if (r.is_active === 0) return false;
+  return r.published === 1;
+}
+
+async function getDB(): Promise<D1Database> {
+  const env = await getEnv();
+  return env.DB;
+}
+
+async function getBucket(): Promise<R2Bucket> {
+  const env = await getEnv();
+  return env.TEMPLATES_BUCKET;
 }
 
 export async function listPublishedTemplates(): Promise<ClientTemplate[]> {
-  if (isSupabaseConfigured()) {
-    const { data, error } = await getSupabase()
-      .from("templates")
-      .select("*")
-      .eq("is_active", true)
-      .order("sort", { ascending: true });
-    if (error) throw error;
-    return (data as TemplateRow[]).map(rowToAdmin).map(toClient);
+  if (isD1Configured()) {
+    const db = await getDB();
+    const { results } = await db
+      .prepare("SELECT * FROM templates WHERE is_active = 1 ORDER BY sort ASC")
+      .all<TemplateRow>();
+    return results.map(rowToAdmin).map(toClient);
   }
   const rows = (await readLocalRows()) as TemplateRow[];
   return rows
@@ -94,20 +100,20 @@ export async function listPublishedTemplates(): Promise<ClientTemplate[]> {
 }
 
 export async function listAllTemplates(): Promise<AdminTemplate[]> {
-  if (isSupabaseConfigured()) {
-    const { data, error } = await getSupabase().from("templates").select("*").order("sort", { ascending: true });
-    if (error) throw error;
-    return (data as TemplateRow[]).map(rowToAdmin);
+  if (isD1Configured()) {
+    const db = await getDB();
+    const { results } = await db.prepare("SELECT * FROM templates ORDER BY sort ASC").all<TemplateRow>();
+    return results.map(rowToAdmin);
   }
   const rows = (await readLocalRows()) as TemplateRow[];
   return [...rows].sort((a, b) => Number(a.sort) - Number(b.sort)).map(rowToAdmin);
 }
 
 export async function getTemplate(id: string): Promise<AdminTemplate | null> {
-  if (isSupabaseConfigured()) {
-    const { data, error } = await getSupabase().from("templates").select("*").eq("id", id).maybeSingle();
-    if (error) throw error;
-    return data ? rowToAdmin(data as TemplateRow) : null;
+  if (isD1Configured()) {
+    const db = await getDB();
+    const row = await db.prepare("SELECT * FROM templates WHERE id = ?").bind(id).first<TemplateRow>();
+    return row ? rowToAdmin(row) : null;
   }
   const rows = (await readLocalRows()) as TemplateRow[];
   const row = rows.find((r) => r.id === id);
@@ -115,13 +121,36 @@ export async function getTemplate(id: string): Promise<AdminTemplate | null> {
 }
 
 export async function createTemplate(t: AdminTemplate): Promise<void> {
-  if (isSupabaseConfigured()) {
-    const { error } = await getSupabase().from("templates").insert(adminToRow(t));
-    if (error) throw error;
+  if (isD1Configured()) {
+    const db = await getDB();
+    const row = adminToRow(t);
+    await db
+      .prepare(
+        `INSERT INTO templates (id, name, canvas_w, canvas_h, slots_json, overlay_key, base_layer_key, bleed, background, published, is_active, usage_count, sort, created_at, updated_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+      )
+      .bind(
+        row.id,
+        row.name,
+        row.canvas_w,
+        row.canvas_h,
+        row.slots_json,
+        row.overlay_key,
+        row.base_layer_key,
+        row.bleed,
+        row.background,
+        row.published,
+        row.is_active,
+        row.usage_count,
+        row.sort,
+        row.created_at,
+        row.updated_at
+      )
+      .run();
     return;
   }
   const rows = await readLocalRows();
-  rows.push(adminToRow(t) as LocalRow);
+  rows.push(adminToRow(t) as Record<string, unknown>);
   await writeLocalRows(rows);
 }
 
@@ -129,26 +158,44 @@ export async function updateTemplate(id: string, patch: Partial<Omit<AdminTempla
   const current = await getTemplate(id);
   if (!current) throw new Error("Template tidak ditemukan");
   const next: AdminTemplate = { ...current, ...patch, id, createdAt: current.createdAt, updatedAt: new Date().toISOString() };
-  if (isSupabaseConfigured()) {
+  if (isD1Configured()) {
+    const db = await getDB();
     const row = adminToRow(next);
-    const { id: _id, created_at: _ca, ...rest } = row;
-    void _id; void _ca;
-    const { error } = await getSupabase().from("templates").update(rest).eq("id", id);
-    if (error) throw error;
+    await db
+      .prepare(
+        `UPDATE templates SET name = ?, canvas_w = ?, canvas_h = ?, slots_json = ?, overlay_key = ?, base_layer_key = ?, bleed = ?, background = ?, published = ?, is_active = ?, usage_count = ?, sort = ?, updated_at = ? WHERE id = ?`
+      )
+      .bind(
+        row.name,
+        row.canvas_w,
+        row.canvas_h,
+        row.slots_json,
+        row.overlay_key,
+        row.base_layer_key,
+        row.bleed,
+        row.background,
+        row.published,
+        row.is_active,
+        row.usage_count,
+        row.sort,
+        row.updated_at,
+        row.id
+      )
+      .run();
     return;
   }
   const rows = await readLocalRows();
   const idx = rows.findIndex((r) => r.id === id);
   if (idx >= 0) {
-    rows[idx] = adminToRow(next) as LocalRow;
+    rows[idx] = adminToRow(next) as Record<string, unknown>;
     await writeLocalRows(rows);
   }
 }
 
 export async function deleteTemplate(id: string): Promise<void> {
-  if (isSupabaseConfigured()) {
-    const { error } = await getSupabase().from("templates").delete().eq("id", id);
-    if (error) throw error;
+  if (isD1Configured()) {
+    const db = await getDB();
+    await db.prepare("DELETE FROM templates WHERE id = ?").bind(id).run();
     return;
   }
   const rows = await readLocalRows();
@@ -157,12 +204,11 @@ export async function deleteTemplate(id: string): Promise<void> {
 
 export async function reorderTemplates(idsInOrder: string[]): Promise<void> {
   const now = new Date().toISOString();
-  if (isSupabaseConfigured()) {
-    const supabase = getSupabase();
-    for (let i = 0; i < idsInOrder.length; i++) {
-      const { error } = await supabase.from("templates").update({ sort: i, updated_at: now }).eq("id", idsInOrder[i]);
-      if (error) throw error;
-    }
+  if (isD1Configured()) {
+    const db = await getDB();
+    const stmt = db.prepare("UPDATE templates SET sort = ?, updated_at = ? WHERE id = ?");
+    const batch = idsInOrder.map((id, i) => stmt.bind(i, now, id));
+    await db.batch(batch);
     return;
   }
   const rows = await readLocalRows();
@@ -178,27 +224,29 @@ export async function reorderTemplates(idsInOrder: string[]): Promise<void> {
 }
 
 export async function putOverlay(key: string, buf: Buffer): Promise<void> {
-  if (isSupabaseConfigured()) {
-    const { error } = await getSupabase().storage.from(getBucket()).upload(key, buf, { contentType: "image/png", upsert: true });
-    if (error) throw error;
+  if (isR2Configured()) {
+    const bucket = await getBucket();
+    await bucket.put(key, buf, { httpMetadata: { contentType: "image/png" } });
     return;
   }
   await putLocalOverlay(key, buf);
 }
 
 export async function getOverlay(key: string): Promise<Buffer | null> {
-  if (isSupabaseConfigured()) {
-    const { data, error } = await getSupabase().storage.from(getBucket()).download(key);
-    if (error || !data) return null;
-    const ab = await data.arrayBuffer();
+  if (isR2Configured()) {
+    const bucket = await getBucket();
+    const obj = await bucket.get(key);
+    if (!obj) return null;
+    const ab = await obj.arrayBuffer();
     return Buffer.from(ab);
   }
   return getLocalOverlay(key);
 }
 
 export async function deleteOverlay(key: string): Promise<void> {
-  if (isSupabaseConfigured()) {
-    await getSupabase().storage.from(getBucket()).remove([key]);
+  if (isR2Configured()) {
+    const bucket = await getBucket();
+    await bucket.delete(key);
     return;
   }
   await deleteLocalOverlay(key);

@@ -50,7 +50,7 @@ export type DashboardAnalytics = {
   topTemplates: TemplatePerformance[];
   activity: ActivityItem[];
   topLocations: LocationStat[];
-  source: { visitors: "fallback" | "tracked"; sessions: "fallback" | "tracked"; downloads: "fallback" | "tracked"; locations: "fallback" | "tracked" };
+  source: { visitors: "fallback" | "tracked" | "unavailable"; sessions: "fallback" | "tracked" | "unavailable"; downloads: "fallback" | "tracked" | "unavailable"; locations: "fallback" | "tracked" | "unavailable" };
 };
 
 const FILTERS = ["Natural", "B&W", "Warm Film", "Cool Matte", "No Filter"] as const;

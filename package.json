@@ -10,10 +10,12 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "e2e": "playwright test",
-    "seed": "tsx scripts/make-seed.ts"
+    "seed": "tsx scripts/make-seed.ts",
+    "preview": "opennextjs-cloudflare build && opennextjs-cloudflare preview",
+    "deploy": "opennextjs-cloudflare build && opennextjs-cloudflare deploy"
   },
   "dependencies": {
-    "@supabase/supabase-js": "^2.119.0",
+    "@opennextjs/cloudflare": "^1.2.0",
     "next": "16.4.6",
     "qrcode": "^1.5.4",
     "react": "19.3.0",
@@ -26,6 +28,7 @@
     "@testing-library/dom": "^10.4.2",
     "@testing-library/react": "^16.3.3",
     "@types/node": "^20",
+    "@types/qrcode": "^1.5.6",
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "eslint": "^9",
