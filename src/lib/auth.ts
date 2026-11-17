@@ -1,4 +1,5 @@
 ﻿import crypto from "crypto";
+import { getSupabase, isSupabaseConfigured } from "./db";
 
 const COOKIE_NAME = "pb_admin";
 const MAX_AGE = 60 * 60 * 12;
@@ -75,6 +76,30 @@ export function getSessionCookieName() {
 
 export async function verifyCredentials(email: string, password: string): Promise<boolean> {
   const normalized = email.trim().toLowerCase();
+  const digest = crypto.createHash("sha256").update(password).digest("hex");
+
+  if (isSupabaseConfigured()) {
+    try {
+      const { data, error } = await getSupabase()
+        .from("admin_accounts")
+        .select("email, password_hash, is_active")
+        .eq("email", normalized)
+        .maybeSingle();
+      if (error) throw error;
+      if (data && data.is_active !== false) {
+        let match = false;
+        try {
+          match = crypto.timingSafeEqual(Buffer.from(digest), Buffer.from(String(data.password_hash)));
+        } catch {
+          match = false;
+        }
+        if (match) return true;
+      }
+    } catch {
+      // fall through to env-based credentials
+    }
+  }
+
   const hash = process.env.ADMIN_PASSWORD_HASH;
   const adminEmail = (process.env.ADMIN_EMAIL || "").trim().toLowerCase();
   if (!hash) {
@@ -83,7 +108,6 @@ export async function verifyCredentials(email: string, password: string): Promis
   }
   const expectedEmail = adminEmail || "admin@imaginez.local";
   if (normalized !== expectedEmail) return false;
-  const digest = crypto.createHash("sha256").update(password).digest("hex");
   try {
     return crypto.timingSafeEqual(Buffer.from(digest), Buffer.from(hash));
   } catch {
