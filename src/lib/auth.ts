@@ -82,8 +82,9 @@ export async function verifyCredentials(email: string, password: string): Promis
     try {
       const { data, error } = await getSupabase()
         .from("admin_accounts")
-        .select("email, password_hash, is_active")
+        .select("email, password_hash, is_active, role")
         .eq("email", normalized)
+        .eq("role", "admin")
         .maybeSingle();
       if (error) throw error;
       if (data && data.is_active !== false) {
@@ -93,10 +94,11 @@ export async function verifyCredentials(email: string, password: string): Promis
         } catch {
           match = false;
         }
-        if (match) return true;
+        return match;
       }
+      return false;
     } catch {
-      // fall through to env-based credentials
+      // Supabase unavailable: fall back to env credentials for resilience
     }
   }
 
