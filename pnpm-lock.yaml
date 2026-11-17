@@ -75,6 +75,9 @@ importers:
       vitest:
         specifier: ^3.0.0
         version: 3.2.7(@types/node@20.19.43)(jiti@2.7.0)(jsdom@31.0.1)(lightningcss@1.32.0)(supports-color@7.2.0)(terser@5.46.0)(tsx@4.23.15)(yaml@2.9.1)
+      wrangler:
+        specifier: ^4.0.0
+        version: 4.163.0(@types/node@20.19.43)
 
 packages:
 

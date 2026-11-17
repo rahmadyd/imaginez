@@ -12,7 +12,7 @@
     "e2e": "playwright test",
     "seed": "tsx scripts/make-seed.ts",
     "preview": "opennextjs-cloudflare build && opennextjs-cloudflare preview",
-    "deploy": "opennextjs-cloudflare build && opennextjs-cloudflare deploy"
+    "deploy": "opennextjs-cloudflare build && wrangler deploy"
   },
   "dependencies": {
     "@opennextjs/cloudflare": "^1.2.0",
@@ -38,7 +38,8 @@
     "tailwindcss": "4.3.3",
     "tsx": "^4.23.15",
     "typescript": "^5",
-    "vitest": "^3.0.0"
+    "vitest": "^3.0.0",
+    "wrangler": "^4.0.0"
   },
   "packageManager": "pnpm@11.17.0"
 }
