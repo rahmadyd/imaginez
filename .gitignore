@@ -3,7 +3,7 @@
 # dependencies
 /node_modules
 /.pnp
-.pnp.*
+.pnp.*kelu
 .yarn/*
 !.yarn/patches
 !.yarn/plugins

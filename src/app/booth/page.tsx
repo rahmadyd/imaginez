@@ -16,7 +16,6 @@ import { renderStrip, exportBlob, downloadBlob, shareFile } from "@/features/com
 import { loadOverlay } from "@/features/compositor/load";
 import { Sunburst, SpotlightBeams, GrainOverlay, FiligreeCorners, TheatreDivider, MarqueeStrip, ScallopedValance, SideDrape, RibbonBadge } from "@/components/ornaments/TheatreOrnaments";
 import { trackEvent } from "@/lib/track-client";
-import QRCode from "qrcode";
 
 type LoadState = "loading" | "ready" | "empty" | "error";
 const PAGE_VIEW_KEY = "pb_page_view_tracked";
@@ -293,7 +292,7 @@ function ChooseScreen({ loadState, templates, selectedId, onSelect, onNext, onRe
                     <div className={`relative flex flex-col gap-2 p-2 border ${isSelected ? "border-gold/50" : "border-brass/20"}`}>
                       <div className="w-full bg-paper border border-brass/30 flex items-center justify-center overflow-hidden" style={{ aspectRatio: ar }}>
                         {/* eslint-disable-next-line @next/next/no-img-element */}
-                        <img src={`/api/templates/${t.id}/overlay`} alt={`${t.name}, ${t.slots.length} portraits`} className="w-full h-full object-contain" />
+                        <img src={`/api/templates/${t.id}/overlay`} alt={`${t.name}, ${t.slots.length} portraits`} className="w-full h-full object-contain" width={t.canvas?.w ?? 1200} height={t.canvas?.h ?? 3600} decoding="async" />
                       </div>
                       <div>
                         <p className="font-display text-sm text-ink truncate">{t.name}</p>
@@ -309,7 +308,7 @@ function ChooseScreen({ loadState, templates, selectedId, onSelect, onNext, onRe
           </>
         )}
       </div>
-      <div className="fixed bottom-0 left-0 right-0 p-4 bg-paper/95 border-t border-brass/40 flex justify-center backdrop-blur-none" style={{ paddingBottom: "calc(1rem + env(safe-area-inset-bottom))" }}>
+      <div className="fixed bottom-0 left-0 right-0 z-20 p-4 bg-paper border-t border-brass/40 flex justify-center" style={{ paddingBottom: "calc(1rem + env(safe-area-inset-bottom))" }}>
         <div className="w-full max-w-[560px]"><Button className="w-full" disabled={!selectedId} onClick={onNext}>{copy.s1.next}</Button></div>
       </div>
     </main>
@@ -686,6 +685,8 @@ function ReviewScreen({ template, photos, sessionCode, onRetakeSlot, onRetakeAll
       const res = await fetch("/api/share", { method: "POST", body: form });
       const data = (await res.json().catch(() => ({}))) as { url?: string; expiresAt?: string; error?: string };
       if (!res.ok || !data.url) throw new Error(data.error || copy.s4.qrError);
+      // Pustaka QR dimuat saat tombol ditekan, bukan di bundel awal halaman.
+      const { default: QRCode } = await import("qrcode");
       const qr = await QRCode.toDataURL(data.url, { width: 320, margin: 1, errorCorrectionLevel: "M" });
       setQrUrl(data.url);
       setQrDataUrl(qr);
@@ -757,7 +758,7 @@ function ReviewScreen({ template, photos, sessionCode, onRetakeSlot, onRetakeAll
           {!qrBusy && !qrError && qrDataUrl && (
             <>
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={qrDataUrl} alt={copy.s4.qrTitle} className="w-[220px] h-[220px] border border-brass/40 bg-paper" />
+              <img src={qrDataUrl} alt={copy.s4.qrTitle} className="w-[220px] h-[220px] border border-brass/40 bg-paper" width={220} height={220} decoding="async" />
               <p className="font-body text-xs text-ink-2">{copy.s4.qrNote}</p>
               {qrExpiresAt && <p className="font-mono text-[11px] text-ink-2">Expires {new Date(qrExpiresAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</p>}
               {qrUrl && <a href={qrUrl} target="_blank" rel="noreferrer" className="font-body text-xs uppercase tracking-[0.14em] underline underline-offset-4 text-gold hover:text-ink">{copy.s4.qrOpenLink}</a>}

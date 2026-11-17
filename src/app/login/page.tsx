@@ -2,8 +2,9 @@
 
 import { Suspense, useState } from "react";
 import Link from "next/link";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 import { Button } from "@/components/Button";
+import { resolveLoginTarget } from "@/lib/next-path";
 import { Sunburst, GrainOverlay, FiligreeCorners, TheatreDivider } from "@/components/ornaments/TheatreOrnaments";
 
 export default function AdminLoginPage() {
@@ -15,7 +16,6 @@ export default function AdminLoginPage() {
 }
 
 function LoginForm() {
-  const router = useRouter();
   const sp = useSearchParams();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -37,9 +37,8 @@ function LoginForm() {
         setError(data.error || "Gagal masuk.");
         return;
       }
-      const next = sp.get("next") || "/admin";
-      router.push(next);
-      router.refresh();
+      // Navigasi penuh supaya guard admin dievaluasi ulang dengan cookie baru.
+      window.location.assign(resolveLoginTarget(sp.get("next")));
     } finally {
       setLoading(false);
     }

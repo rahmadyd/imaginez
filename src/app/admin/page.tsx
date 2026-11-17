@@ -75,7 +75,8 @@ export default function AdminPage() {
 
   const logout = async () => {
     await fetch("/api/admin/logout", { method: "POST" });
-    router.push("/login");
+    // Navigasi penuh supaya guard admin tidak memakai cache RSC sesi lama.
+    window.location.href = "/login";
   };
 
   const togglePublish = async (t: AdminTemplate) => {
@@ -250,7 +251,7 @@ export default function AdminPage() {
                     <div key={t.id} className="flex items-center gap-3 border border-brass/30 bg-paper/30 p-2">
                       <span className="font-mono text-xs text-gold w-4">{idx + 1}</span>
                       {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img src={t.overlayUrl} alt={t.name} className="w-8 h-12 object-contain border border-brass/30 bg-paper" />
+                      <img src={t.overlayUrl} alt={t.name} className="w-8 h-12 object-contain border border-brass/30 bg-paper" width={32} height={48} loading="lazy" decoding="async" />
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center justify-between gap-2">
                           <p className="font-body text-sm text-ink truncate">{t.name}</p>
@@ -339,8 +340,8 @@ export default function AdminPage() {
                       onDrop={() => onDrop(t.id)}
                       className="relative border border-brass/40 bg-paper/30 p-3 flex gap-3 hover:border-brass transition-colors">
                       <span className="font-mono text-xs text-ink-2 cursor-grab pt-1" title="Seret untuk urutkan">::</span>
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img src={`/api/templates/${t.id}/overlay`} alt={t.name} className="w-12 h-20 object-contain border border-brass/40 bg-paper shrink-0" />
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img src={`/api/templates/${t.id}/overlay`} alt={t.name} className="w-12 h-20 object-contain border border-brass/40 bg-paper shrink-0" width={48} height={80} loading="lazy" decoding="async" />
                       <div className="flex-1 min-w-0 flex flex-col gap-1.5">
                         <div className="flex items-start justify-between gap-2">
                           <p className="font-display text-sm text-ink truncate">{t.name}</p>

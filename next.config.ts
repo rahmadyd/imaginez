@@ -15,6 +15,7 @@ const nextConfig: NextConfig = {
   // Nonce CSP butuh render dinamis penuh; cacheComponents melakukan PPR.
   cacheComponents: false,
   partialPrefetching: false,
+  poweredByHeader: false,
   async headers() {
     return [{ source: "/:path*", headers: securityHeaders }];
   },
