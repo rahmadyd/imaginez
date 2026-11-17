@@ -93,7 +93,8 @@ describe("template schemas", () => {
     it("menerima background default #ffffff", () => {
       const templateWithoutBg = { ...validTemplate };
       // Hapus background untuk test default
-      const { background, ...rest } = templateWithoutBg;
+      const { background: _background, ...rest } = templateWithoutBg;
+      void _background;
       const parsed = templateSchema.parse(rest);
       expect(parsed.background).toBe("#ffffff");
     });

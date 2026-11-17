@@ -1,0 +1,8 @@
+▲ Next.js 16.4.6 (Turbopack)
+- Local:         http://localhost:3001
+- Network:       http://172.24.128.1:3001
+- Environments: .env.local
+✓ Ready in 1624ms
+✓ Running next.config.ts took 206ms
+[?25h
+[ELIFECYCLE] Command failed with exit code 1.

@@ -4,8 +4,8 @@ import { fontDisplay, fontBody, fontMono } from "@/styles/fonts";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Bilik Analog — Web Photobooth",
-  description: "Foto strip, tanpa jejak. Diproses di perangkatmu.",
+  title: "imaginez — The Cabaret Booth",
+  description: "Step into the spotlight. A private portrait, rendered on your device.",
 };
 
 export default async function RootLayout({

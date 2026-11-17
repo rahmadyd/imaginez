@@ -1,171 +1,100 @@
+﻿"use client";
+
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
+import { copy } from "@/lib/copy";
+import { Button } from "@/components/Button";
+import { Sunburst, SpotlightBeams, GrainOverlay, MarqueeStrip, TheatreDivider, FiligreeCorners, ScallopedValance } from "@/components/ornaments/TheatreOrnaments";
+import { trackEvent } from "@/lib/track-client";
+
+const PAGE_VIEW_KEY = "pb_page_view_tracked";
+
 export default function Home() {
+  const router = useRouter();
+  const [opening, setOpening] = useState(false);
+
+  useEffect(() => {
+    try {
+      if (sessionStorage.getItem(PAGE_VIEW_KEY)) return;
+      sessionStorage.setItem(PAGE_VIEW_KEY, "1");
+      trackEvent({ event_type: "page_view" });
+    } catch {
+      trackEvent({ event_type: "page_view" });
+    }
+  }, []);
+
+  const enter = () => {
+    const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    if (reduce) {
+      router.push("/booth");
+      return;
+    }
+    setOpening(true);
+    window.setTimeout(() => router.push("/booth"), 600);
+  };
+
+  const pleats =
+    "repeating-linear-gradient(90deg, #3a0e16 0px, #781D2B 22px, #5C1622 46px, #4a121c 58px, #6a1926 72px, #3a0e16 92px)";
+
   return (
-    <main className="min-h-screen bg-paper text-ink p-6 md:p-12">
-      <div className="max-w-[560px] mx-auto flex flex-col gap-8">
-        {/* Header Lembar Uji */}
-        <header className="border-b-2 border-ink pb-4 flex justify-between items-end">
-          <div>
-            <p className="font-mono text-xs tracking-wider text-ink-2">
-              DOKUMEN KALIBRASI SISTEM
-            </p>
-            <h1 className="font-display text-4xl font-bold mt-1 tracking-tight">
-              Spesimen Bilik
+    <main className="relative min-h-[100dvh] overflow-hidden bg-paper text-ink flex items-center justify-center">
+      <div className="absolute inset-0 pointer-events-none" style={{ background: pleats }} />
+      <div
+        className="absolute inset-0 pointer-events-none"
+        style={{
+          background:
+            "linear-gradient(to bottom, rgba(18,13,16,0.55) 0%, rgba(18,13,16,0.15) 30%, rgba(18,13,16,0.35) 100%)",
+        }}
+      />
+      <Sunburst className="opacity-50" />
+      <SpotlightBeams />
+      <div
+        className="absolute inset-0 pointer-events-none"
+        style={{
+          background:
+            "radial-gradient(ellipse 60% 45% at 50% 42%, rgba(212,175,55,0.12) 0%, rgba(18,13,16,0) 70%)",
+        }}
+      />
+      <GrainOverlay />
+      <div className="absolute top-0 left-0 right-0 z-0 pointer-events-none opacity-90">
+        <ScallopedValance />
+      </div>
+
+      <div
+        className={`absolute inset-y-0 left-0 w-1/2 transition-transform duration-[600ms] ease-[var(--ease-out)] motion-reduce:transition-none z-0 ${
+          opening ? "-translate-x-full" : "translate-x-0"
+        }`}
+        style={{ background: pleats, boxShadow: "inset -22px 0 40px rgba(0,0,0,0.55), inset 8px 0 18px rgba(212,175,55,0.05)" }}
+      />
+      <div
+        className={`absolute inset-y-0 right-0 w-1/2 transition-transform duration-[600ms] ease-[var(--ease-out)] motion-reduce:transition-none z-0 ${
+          opening ? "translate-x-full" : "translate-x-0"
+        }`}
+        style={{ background: pleats, boxShadow: "inset 22px 0 40px rgba(0,0,0,0.55), inset -8px 0 18px rgba(212,175,55,0.05)" }}
+      />
+
+      <div className={`relative z-10 max-w-[580px] px-6 text-center flex flex-col items-center gap-5 transition-opacity duration-[300ms] motion-reduce:transition-none ${opening ? "opacity-0" : "opacity-100"}`}>
+        <p className="font-body text-xs uppercase tracking-[0.3em] text-gold/80">{copy.brand}</p>
+        <div className="w-full border border-brass/70 p-[2px] bg-paper-2/30 relative">
+          <FiligreeCorners size={34} inset="inset-1" />
+          <div className="border border-brass/40 px-8 py-10 flex flex-col items-center gap-4 bg-paper-2/70 relative">
+            <MarqueeStrip count={14} className="w-full mb-1" />
+            <h1 className="font-display text-[clamp(2.4rem,7vw,3.8rem)] font-semibold leading-tight text-ink">
+              {copy.s0.title}
             </h1>
+            <TheatreDivider className="max-w-[260px]" />
+            <p className="font-body text-sm text-ink-2 max-w-[36ch] leading-relaxed">{copy.s0.subtitle}</p>
+            <Button onClick={enter} className="mt-2 w-full max-w-[280px]">
+              {copy.s0.cta}
+            </Button>
+            <MarqueeStrip count={14} className="w-full mt-1" />
           </div>
-          <span className="font-mono text-xs border-2 border-ink px-2 py-1 bg-paper-2 shadow-[2px_2px_0_var(--ink)]">
-            No. 0021-T02
-          </span>
-        </header>
-
-        {/* Seksi Tipografi */}
-        <section className="flex flex-col gap-4">
-          <div className="flex items-center gap-2 border-b-2 border-dashed border-ink/40 pb-1">
-            <span className="font-mono text-xs bg-ink text-paper px-1.5 py-0.5">
-              01
-            </span>
-            <h2 className="font-mono text-xs font-bold tracking-wider">
-              TIPOGRAFI (3 KELUARGA FONT)
-            </h2>
-          </div>
-
-          <div className="bg-paper-2 border-2 border-ink p-4 shadow-[4px_4px_0_var(--ink)] flex flex-col gap-3">
-            <div>
-              <span className="font-mono text-[10px] text-ink-2 uppercase block mb-1">
-                Display — Fraunces (600–900)
-              </span>
-              <p className="font-display text-3xl font-bold leading-tight">
-                Foto strip, tanpa jejak.
-              </p>
-            </div>
-
-            <div className="border-t-2 border-ink/20 pt-3">
-              <span className="font-mono text-[10px] text-ink-2 uppercase block mb-1">
-                Body & UI — Archivo (400/500/700)
-              </span>
-              <p className="font-body text-base text-ink leading-relaxed">
-                Pengalaman bilik fisik: tirai tertutup, kilatan lampu, dan strip foto
-                yang keluar perlahan dari celah mesin.
-              </p>
-            </div>
-
-            <div className="border-t-2 border-ink/20 pt-3">
-              <span className="font-mono text-[10px] text-ink-2 uppercase block mb-1">
-                Mono — IBM Plex Mono (400/500)
-              </span>
-              <p className="font-mono text-sm text-ink-2">
-                SLOT: 03/06 • ISO 400 • EXPOSURE: +0.0 • 1200×3600 PX
-              </p>
-            </div>
-          </div>
-        </section>
-
-        {/* Seksi Palet Warna */}
-        <section className="flex flex-col gap-4">
-          <div className="flex items-center gap-2 border-b-2 border-dashed border-ink/40 pb-1">
-            <span className="font-mono text-xs bg-ink text-paper px-1.5 py-0.5">
-              02
-            </span>
-            <h2 className="font-mono text-xs font-bold tracking-wider">
-              PALET WARNA (TOKEN RESMI)
-            </h2>
-          </div>
-
-          <div className="grid grid-cols-2 gap-3">
-            {/* Paper */}
-            <div className="border-2 border-ink bg-paper p-3 shadow-[2px_2px_0_var(--ink)]">
-              <span className="font-mono text-xs block font-bold text-ink">
-                --paper
-              </span>
-              <span className="font-body text-xs text-ink-2 block mt-1">
-                Latar Utama
-              </span>
-            </div>
-
-            {/* Paper-2 */}
-            <div className="border-2 border-ink bg-paper-2 p-3 shadow-[2px_2px_0_var(--ink)]">
-              <span className="font-mono text-xs block font-bold text-ink">
-                --paper-2
-              </span>
-              <span className="font-body text-xs text-ink-2 block mt-1">
-                Kartu & Permukaan
-              </span>
-            </div>
-
-            {/* Ink */}
-            <div className="border-2 border-ink bg-ink text-paper p-3 shadow-[2px_2px_0_var(--ink)]">
-              <span className="font-mono text-xs block font-bold text-paper">
-                --ink
-              </span>
-              <span className="font-body text-xs text-paper-2 block mt-1">
-                Tinta & Garis
-              </span>
-            </div>
-
-            {/* Booth Red */}
-            <div className="border-2 border-ink bg-booth-red text-paper p-3 shadow-[2px_2px_0_var(--ink)]">
-              <span className="font-mono text-xs block font-bold text-paper">
-                --booth-red
-              </span>
-              <span className="font-body text-xs text-paper block mt-1">
-                Aksen Utama & CTA
-              </span>
-            </div>
-
-            {/* Curtain */}
-            <div className="border-2 border-ink bg-curtain text-paper p-3 shadow-[2px_2px_0_var(--ink)]">
-              <span className="font-mono text-xs block font-bold text-paper">
-                --curtain
-              </span>
-              <span className="font-body text-xs text-paper-2 block mt-1">
-                Tirai Bilik
-              </span>
-            </div>
-
-            {/* Flash */}
-            <div className="border-2 border-ink bg-flash text-ink p-3 shadow-[2px_2px_0_var(--ink)]">
-              <span className="font-mono text-xs block font-bold text-ink">
-                --flash
-              </span>
-              <span className="font-body text-xs text-ink-2 block mt-1">
-                Kilatan Rana
-              </span>
-            </div>
-          </div>
-        </section>
-
-        {/* Seksi Komponen Tombol Uji */}
-        <section className="flex flex-col gap-4">
-          <div className="flex items-center gap-2 border-b-2 border-dashed border-ink/40 pb-1">
-            <span className="font-mono text-xs bg-ink text-paper px-1.5 py-0.5">
-              03
-            </span>
-            <h2 className="font-mono text-xs font-bold tracking-wider">
-              BENTUK & BAYANGAN KERAS
-            </h2>
-          </div>
-
-          <div className="flex flex-col sm:flex-row gap-3">
-            <button
-              type="button"
-              className="h-12 px-6 bg-booth-red text-paper font-body font-bold text-sm border-2 border-ink shadow-[4px_4px_0_var(--ink)] active:translate-x-[2px] active:translate-y-[2px] active:shadow-[2px_2px_0_var(--ink)] transition-transform"
-            >
-              Tombol Utama (CTA)
-            </button>
-            <button
-              type="button"
-              className="h-12 px-6 bg-paper-2 text-ink font-body font-medium text-sm border-2 border-ink shadow-[4px_4px_0_var(--ink)] active:translate-x-[2px] active:translate-y-[2px] active:shadow-[2px_2px_0_var(--ink)] transition-transform"
-            >
-              Tombol Sekunder
-            </button>
-          </div>
-        </section>
-
-        {/* Footer info */}
-        <footer className="pt-4 border-t-2 border-ink flex justify-between items-center font-mono text-[11px] text-ink-2">
-          <span>STATUS: TERVERIFIKASI</span>
-          <span>BILIK ANALOG © 2026</span>
-        </footer>
+        </div>
+        <p className="font-mono text-[11px] text-ink-2 tracking-wide">{copy.s0.note}</p>
+        <Link href="/privasi" className="font-body text-xs uppercase tracking-[0.18em] underline underline-offset-4 text-ink-2 hover:text-ink">Privacy</Link>
       </div>
     </main>
   );
 }
+

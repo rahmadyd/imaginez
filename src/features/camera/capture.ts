@@ -15,15 +15,46 @@
  * - Setelah crop, skala sehingga sisi terpanjang ≤ maxSide, pertahankan rasio.
  * - Memori: ImageBitmap langsung siap untuk canvas tanpa decode ulang.
  */
+async function ensureVideoReady(video: HTMLVideoElement, timeoutMs = 2500): Promise<void> {
+  const ready = () => video.videoWidth > 0 && video.videoHeight > 0;
+  if (ready()) return;
+  if (video.paused) {
+    try { await video.play(); } catch { /* ignore */ }
+  }
+  await new Promise<void>((resolve, reject) => {
+    const done = () => {
+      if (ready()) {
+        cleanup();
+        resolve();
+      }
+    };
+    const onFail = () => {
+      cleanup();
+      if (ready()) { resolve(); return; }
+      reject(new Error("Video belum memiliki dimensi yang valid"));
+    };
+    const cleanup = () => {
+      video.removeEventListener("loadedmetadata", done);
+      video.removeEventListener("loadeddata", done);
+      video.removeEventListener("playing", done);
+      video.removeEventListener("resize", done);
+      clearTimeout(timer);
+    };
+    const timer = setTimeout(onFail, timeoutMs);
+    video.addEventListener("loadedmetadata", done);
+    video.addEventListener("loadeddata", done);
+    video.addEventListener("playing", done);
+    video.addEventListener("resize", done);
+    done();
+  });
+}
+
 export async function captureFrame(
   video: HTMLVideoElement,
   targetAspect: number,
   maxSide: number = 1920
 ): Promise<ImageBitmap> {
-  // Video harus sudah memuat dan memiliki dimensi valid
-  if (video.videoWidth === 0 || video.videoHeight === 0) {
-    throw new Error("Video belum memiliki dimensi yang valid");
-  }
+  await ensureVideoReady(video);
 
   const videoWidth = video.videoWidth;
   const videoHeight = video.videoHeight;

@@ -14,3 +14,10 @@ Catatan audit dan verifikasi visual untuk setiap layar dan komponen UI sesuai at
   - **konkret:** Lolos. Semua elemen visual merepresentasikan instrumen cetak analog fisik: nomor seri stempel, pemisah garis putus-putus/perforasi, bayangan offset tanpa blur.
   - **state:** Lolos. Menampilkan spesimen tombol dengan state aktif dan tekan (`translate 2px` + penyusutan bayangan).
 - Catatan atau perbaikan: Palet Tailwind default telah di-reset pada `@theme` (`--color-*: initial`) dan dipetakan penuh ke token desain.
+
+## S0/S3/S4 + Editor Admin — progres (2026-11-16)
+- **Konsep:** Tirai panggung & bilik foto analog (1920s theatre/cabaret) dengan frame template di atas foto; panel admin Backstage Box Office.
+- **Gerak (T5.1 parsial):** tirai buka (S0) dan tirai samping capture (S3) `motion-reduce:transition-none`; countdown pop `--ease-snap` + strip preview “tercetak” (`anim-strip-print` 900ms) dengan fallback `prefers-reduced-motion: reduce` → fade 150ms (`src/app/globals.css`, `src/app/page.tsx`, `src/app/booth/page.tsx`). Tombol: transisi + `active:translate-y` (reduce-safe) di `Button`. Flash capture tetap singkat.
+- **Compositor:** render `background → foto per slot → overlay` utuh (tanpa auto-punch) agar lubang manual/transparan overlay menampakkan foto; bleed slot dinonaktifkan agar tidak menimpa frame (`src/features/compositor/render.ts`, tes `tests/unit/compositor.test.ts`).
+- **Editor admin:** bounding box slot high-contrast (border/outline/label/handle), kontrol bleed & radius, deteksi otomatis, “Lihat tanpa foto” (checkerboard), preview dummy, simpan `slots/bleed/radius`; tanpa fitur lubang/hapus-lubang otomatis (frame dibolongi manual) (`src/app/admin/templates/[id]/page.tsx`).
+- **Verifikasi:** `pnpm lint`, `pnpm typecheck`, `pnpm test -- --run` lulus (16 file, 116 tes). Screenshot mobile 390px/desktop 1280px & audit anti-slop menyeluruh per layar (T5.5), suara/haptic (T5.2), a11y audit (T5.3), matriks perangkat (T5.6), dan verifikasi privasi produksi (T6.3) belum dilakukan/dibuktikan di sini.

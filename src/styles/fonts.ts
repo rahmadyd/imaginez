@@ -1,22 +1,20 @@
-import { Fraunces, Archivo, IBM_Plex_Mono } from "next/font/google";
+import { Playfair_Display, Plus_Jakarta_Sans, IBM_Plex_Mono } from "next/font/google";
 
-export const fontDisplay = Fraunces({
-  variable: "--font-fraunces",
+export const fontDisplay = Playfair_Display({
+  variable: "--font-display-serif",
   subsets: ["latin"],
   display: "swap",
-  axes: ["opsz"],
+  weight: ["400", "600", "700"],
 });
 
-export const fontBody = Archivo({
-  variable: "--font-archivo",
+export const fontBody = Plus_Jakarta_Sans({
+  variable: "--font-body-sans",
   subsets: ["latin"],
   display: "swap",
-  weight: ["400", "500", "700"],
+  weight: ["400", "500", "600"],
 });
 
 export const fontMono = IBM_Plex_Mono({
-  // Bukan "--font-mono": nama itu dipakai token tema Tailwind sehingga
-  // deklarasinya akan merujuk dirinya sendiri.
   variable: "--font-plex-mono",
   subsets: ["latin"],
   display: "swap",

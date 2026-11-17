@@ -1,4 +1,4 @@
-export const CAMERA_ERROR_TYPES = [
+﻿export const CAMERA_ERROR_TYPES = [
   "denied",
   "not-found",
   "in-use",
@@ -24,10 +24,18 @@ export function classifyCameraError(error: unknown): CameraErrorType {
       return "not-found";
     case "NotReadableError":
     case "TrackStartError":
+    case "AbortError":
       return "in-use";
     case "InsecureContextError":
       return "insecure-context";
+    case "OverconstrainedError":
+    case "ConstraintNotSatisfiedError":
+      return "not-found";
     default:
       return "unknown";
   }
+}
+
+export function isInAppBrowser(ua: string = typeof navigator !== "undefined" ? navigator.userAgent : ""): boolean {
+  return /Instagram|FBAN|FBAV|Line\/|TikTok|Musical\.ly/i.test(ua);
 }

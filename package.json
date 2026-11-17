@@ -13,7 +13,9 @@
     "seed": "tsx scripts/make-seed.ts"
   },
   "dependencies": {
+    "@supabase/supabase-js": "^2.119.0",
     "next": "16.4.6",
+    "qrcode": "^1.5.4",
     "react": "19.3.0",
     "react-dom": "19.3.0",
     "zod": "^4.6.7"

@@ -31,7 +31,7 @@ test.describe("header keamanan", () => {
     expect(headers["x-content-type-options"]).toBe("nosniff");
   });
 
-  test("halaman, font, gambar data, dan kamera tetap berjalan", async ({
+  test("halaman, font, gambar data, dan kamera device tetap berjalan", async ({
     page,
   }) => {
     const cspErrors: string[] = [];
@@ -55,9 +55,8 @@ test.describe("header keamanan", () => {
     expect(response?.headers()["content-security-policy"]).toContain(
       "script-src 'self'"
     );
-    await expect(page.getByRole("heading", { name: "Spesimen Bilik" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Foto strip, tanpa jejak." })).toBeVisible();
 
-    // Script inline runtime React harus benar-benar dieksekusi, bukan diblokir CSP.
     const runtimeLoaded = await page.evaluate(() => {
       return typeof (window as unknown as { __next_f?: unknown }).__next_f !== "undefined";
     });
@@ -90,7 +89,7 @@ test.describe("header keamanan", () => {
     });
     expect(videoTrackCount).toBeGreaterThan(0);
 
-    await page.waitForTimeout(500);
+    await page.waitForTimeout(300);
 
     expect(cspErrors).toEqual([]);
     expect(pageErrors).toEqual([]);

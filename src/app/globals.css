@@ -1,4 +1,4 @@
-@import "../styles/tokens.css";
+﻿@import "../styles/tokens.css";
 @import "tailwindcss";
 
 @theme {
@@ -6,7 +6,7 @@
   --color-transparent: transparent;
   --color-current: currentColor;
 
-  /* Palet Bilik Analog */
+  /* Palet 1920s Theatre & Cabaret */
   --color-paper: var(--paper);
   --color-paper-2: var(--paper-2);
   --color-ink: var(--ink);
@@ -14,10 +14,12 @@
   --color-booth-red: var(--booth-red);
   --color-curtain: var(--curtain);
   --color-flash: var(--flash);
+  --color-gold: var(--gold);
+  --color-brass: var(--brass);
 
   /* Tipografi */
-  --font-display: var(--font-fraunces), serif;
-  --font-body: var(--font-archivo), sans-serif;
+  --font-display: var(--font-display-serif), serif;
+  --font-body: var(--font-body-sans), sans-serif;
   --font-mono: var(--font-plex-mono), monospace;
 
   /* Bentuk */
@@ -29,8 +31,67 @@
 body {
   background-color: var(--paper);
   color: var(--ink);
-  font-family: var(--font-archivo), sans-serif;
+  font-family: var(--font-body-sans), sans-serif;
   margin: 0;
   padding: 0;
   min-height: 100dvh;
 }
+
+@keyframes marquee-twinkle {
+  0%, 100% { opacity: 1; filter: drop-shadow(0 0 4px rgba(255,243,196,0.9)); }
+  50% { opacity: 0.45; filter: drop-shadow(0 0 1px rgba(212,175,55,0.4)); }
+}
+
+@keyframes marquee-twinkle-alt {
+  0%, 100% { opacity: 0.45; filter: drop-shadow(0 0 1px rgba(212,175,55,0.4)); }
+  50% { opacity: 1; filter: drop-shadow(0 0 4px rgba(255,243,196,0.9)); }
+}
+
+@keyframes countdown-pop {
+  0% { transform: scale(0.7); opacity: 0.2; }
+  60% { transform: scale(1.08); opacity: 1; }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+@keyframes strip-print {
+  0% { transform: translateY(-24px); opacity: 0; }
+  100% { transform: translateY(0); opacity: 1; }
+}
+
+@keyframes slot-fill {
+  0% { transform: scale(0.6); opacity: 0.2; }
+  70% { transform: scale(1.12); opacity: 1; }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+@keyframes fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.anim-count {
+  animation: countdown-pop var(--t-base) var(--ease-snap);
+}
+
+.anim-strip-print {
+  animation: strip-print 900ms var(--ease-out);
+}
+
+.anim-slot-fill {
+  animation: slot-fill 360ms var(--ease-out);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .anim-count {
+    animation: fade-in 150ms linear;
+  }
+  .anim-strip-print,
+  .anim-slot-fill {
+    animation: fade-in 150ms linear;
+  }
+}
+
+.theatre-grain {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='140' height='140' filter='url(%23n)' opacity='0.5'/%3E%3C/svg%3E");
+}
+
