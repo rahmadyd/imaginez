@@ -1,10 +1,10 @@
 name = "imaginez"
-main = ".opennext/worker.js"
+main = ".open-next/worker.js"
 compatibility_date = "2024-12-01"
 compatibility_flags = ["nodejs_compat"]
 
 [assets]
-directory = ".opennext/assets"
+directory = ".open-next/assets"
 binding = "ASSETS"
 
 [[d1_databases]]
