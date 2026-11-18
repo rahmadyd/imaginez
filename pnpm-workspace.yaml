@@ -3,3 +3,13 @@ allowBuilds:
   sharp: false
   unrs-resolver: false
   workerd: false
+
+nodeLinker: hoisted
+
+verifyDepsBeforeRun: false
+
+supportedArchitectures:
+  os:
+    - win32
+  cpu:
+    - x64

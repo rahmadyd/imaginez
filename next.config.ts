@@ -10,7 +10,7 @@ const securityHeaders = [
 ];
 
 const nextConfig: NextConfig = {
-  /* config options here */
+  output: "standalone",
   agentRules: false,
   // Nonce CSP butuh render dinamis penuh; cacheComponents melakukan PPR.
   cacheComponents: false,
