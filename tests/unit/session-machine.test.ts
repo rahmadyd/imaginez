@@ -83,4 +83,54 @@ describe("session machine", () => {
     expect(s.phase).toBe("done");
     expect(s.photos).toEqual([]);
   });
+
+  it("alur galeri: permission -> filling -> reviewing tanpa kamera", () => {
+    let s = transition(initialSessionState, { type: "ENTER_CHOOSING" });
+    s = transition(s, { type: "SELECT_TEMPLATE", template: template(2) });
+    s = transition(s, { type: "GRANT_PERMISSION" });
+    s = transition(s, { type: "START_GALLERY" });
+    expect(s.phase).toBe("filling");
+    expect(s.mode).toBe("gallery");
+    s = transition(s, { type: "CAPTURE_PHOTO", slot: 0, photo: bmp() });
+    expect(s.phase).toBe("filling");
+    s = transition(s, { type: "CAPTURE_PHOTO", slot: 1, photo: bmp() });
+    s = transition(s, { type: "CAPTURE_COMPLETE" });
+    expect(s.phase).toBe("reviewing");
+    expect(s.mode).toBe("gallery");
+  });
+
+  it("retake pada sesi galeri kembali ke filling, bukan capturing", () => {
+    let s = transition(initialSessionState, { type: "ENTER_CHOOSING" });
+    s = transition(s, { type: "SELECT_TEMPLATE", template: template(2) });
+    s = transition(s, { type: "GRANT_PERMISSION" });
+    s = transition(s, { type: "START_GALLERY" });
+    s = transition(s, { type: "CAPTURE_PHOTO", slot: 0, photo: bmp() });
+    s = transition(s, { type: "CAPTURE_PHOTO", slot: 1, photo: bmp() });
+    s = transition(s, { type: "CAPTURE_COMPLETE" });
+    s = transition(s, { type: "RETAKE_SLOT", slot: 1 });
+    expect(s.phase).toBe("filling");
+    expect(s.activeSlot).toBe(1);
+    expect(s.photos[1]).toBeNull();
+    s = transition(s, { type: "CAPTURE_PHOTO", slot: 1, photo: bmp() });
+    s = transition(s, { type: "CAPTURE_COMPLETE" });
+    s = transition(s, { type: "RETAKE_ALL" });
+    expect(s.phase).toBe("filling");
+    expect(s.photos.every((p) => p === null)).toBe(true);
+  });
+
+  it("galeri bisa beralih ke kamera secara sadar", () => {
+    let s = transition(initialSessionState, { type: "ENTER_CHOOSING" });
+    s = transition(s, { type: "SELECT_TEMPLATE", template: template(2) });
+    s = transition(s, { type: "GRANT_PERMISSION" });
+    s = transition(s, { type: "START_GALLERY" });
+    s = transition(s, { type: "CAPTURE_PHOTO", slot: 0, photo: bmp() });
+    s = transition(s, { type: "START_CAPTURE" });
+    expect(s.phase).toBe("capturing");
+    expect(s.mode).toBe("camera");
+    expect(s.activeSlot).toBe(1);
+  });
+
+  it("menolak mulai galeri dari fase selain permission", () => {
+    expect(() => transition(initialSessionState, { type: "START_GALLERY" })).toThrow();
+  });
 });
