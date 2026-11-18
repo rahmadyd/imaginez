@@ -9,13 +9,22 @@ const OVERLAY_DIR = path.join(DATA_DIR, "overlays");
 type Row = Record<string, unknown>;
 
 let supabase: SupabaseClient | null = null;
+let authClient: SupabaseClient | null = null;
 
 function getApiKey(): string | undefined {
   return process.env.SUPABASE_SECRET_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY;
 }
 
+function getAuthKey(): string | undefined {
+  return process.env.SUPABASE_PUBLISHABLE_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SECRET_KEY;
+}
+
 export function isSupabaseConfigured(): boolean {
   return Boolean(process.env.SUPABASE_URL && getApiKey());
+}
+
+export function isAuthConfigured(): boolean {
+  return Boolean(process.env.SUPABASE_URL && getAuthKey());
 }
 
 export function getSupabase(): SupabaseClient {
@@ -28,6 +37,18 @@ export function getSupabase(): SupabaseClient {
     );
   }
   return supabase;
+}
+
+export function getAuthClient(): SupabaseClient {
+  if (!isAuthConfigured()) throw new Error("Supabase Auth not configured");
+  if (!authClient) {
+    authClient = createClient(
+      process.env.SUPABASE_URL!,
+      getAuthKey()!,
+      { auth: { persistSession: false, autoRefreshToken: false } }
+    );
+  }
+  return authClient;
 }
 
 export function getBucket(): string {

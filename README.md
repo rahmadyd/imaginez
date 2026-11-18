@@ -15,26 +15,26 @@ pnpm dev
 
 ### Environment
 Lihat `.env.example`.
-- `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `SUPABASE_STORAGE_BUCKET` - metadata template, share sementara, dan overlay (server-side). Jika kosong, app memakai store lokal `data/` (dev) dan seed `public/seed/`.
+- `SUPABASE_URL`, `SUPABASE_SECRET_KEY`, `SUPABASE_STORAGE_BUCKET` - metadata template, share sementara, dan overlay (server-side). Jika kosong, app memakai store lokal `data/` (dev) dan seed `public/seed/`.
+- `SUPABASE_PUBLISHABLE_KEY` - publishable key (`sb_publishable_...`) untuk login admin lewat Supabase Auth.
 - `SESSION_SECRET` - tanda tangan sesi admin.
-- `ADMIN_EMAIL` - email admin (fallback: `admin@imaginez.local`).
-- `ADMIN_PASSWORD_HASH` - sha256 hex kata sandi admin. Jika ada kredensial di tabel `admin_accounts`, itu yang dipakai; selainnya fallback ke env ini. Jika kosong di non-production, login dev fallback aktif.
+- `ADMIN_EMAIL` - email yang boleh login ke dashboard (pisahkan dengan koma jika lebih dari satu).
 
 ### Supabase (production)
 1. Buat project & bucket storage (mis. `templates`).
 2. Jalankan migrasi di SQL Editor, urut:
    - `migrations/supabase_init.sql` (tabel `templates`)
-   - `migrations/supabase_admin.sql` (tabel `admin_accounts` + seed admin — **ganti email & password_hash sebelum production**)
    - `migrations/supabase_analytics.sql` (`booth_events`, kolom `is_active`/`usage_count`)
    - `migrations/supabase_photo_shares.sql` (tabel `photo_shares` untuk share sementara TTL ~5 menit)
-3. Set env vars di Cloudflare Dashboard → Workers → Settings → Variables and Secrets:
+3. Buat user admin di Supabase Dashboard → Authentication → Users, lalu catat emailnya.
+4. Set env vars di Cloudflare Dashboard → Workers → Settings → Variables and Secrets:
    - `SUPABASE_URL`
    - `SUPABASE_SECRET_KEY` (new 2026 format `sb_secret_...`; legacy `SUPABASE_SERVICE_ROLE_KEY` juga masih didukung)
+   - `SUPABASE_PUBLISHABLE_KEY` (new 2026 format `sb_publishable_...`)
    - `SUPABASE_STORAGE_BUCKET`
    - `SESSION_SECRET`
    - `ADMIN_EMAIL`
-   - `ADMIN_PASSWORD_HASH`
-4. Deploy: `pnpm deploy`
+5. Deploy: `pnpm deploy`
 
 ## Perintah
 ```bash
@@ -56,9 +56,6 @@ pnpm deploy     # OpenNext Cloudflare deploy ke production
 
 ## Admin
 - **Login:** `/login` (butuh email + kata sandi). Dashboard admin (`/admin`) & API admin hanya bisa diakses setelah login.
-- **Kredensial:** jika tabel `admin_accounts` terisi, login memakai data tersebut (sha256 hex). Jika tidak, pakai env `ADMIN_EMAIL` + `ADMIN_PASSWORD_HASH`.
-- **Kredensial lokal (dev, saat Supabase & `ADMIN_PASSWORD_HASH` kosong & bukan production):**
-  - Email: `admin@imaginez.local`
-  - Password: `admin`
-- **Hash password:** `node -e "console.log(require('crypto').createHash('sha256').update('PASSWORD').digest('hex'))"`.
+- **Kredensial:** dikelola di Supabase Auth (`Authentication → Users`). Server memverifikasi lewat `supabase.auth.signInWithPassword`, lalu hanya email yang terdaftar di `ADMIN_EMAIL` yang boleh masuk.
+- **Hash password:** Password disimpan di Supabase Auth (bcrypt), bukan di repo ini. Tidak ada `password_hash` di database aplikasi.
 - **Membuat template baru:** di `/admin`, unggah file PNG (punya area transparan/alpha), lalu atur slot/nama/publish di editor dan simpan. Template yang dipublish tampil di halaman pilih template user.

@@ -207,7 +207,8 @@ Pemicu: tombol Selesai, idle timeout (`idle.ts`), `pagehide`, dan ganti template
 7. Jika komponen tidak persegi (rasio isi < 0,9), tetap pakai bounding box dan beri peringatan di UI. Admin mengoreksi manual.
 
 ### 7.6 Autentikasi admin
-- Kredensial dari environment (`ADMIN_PASSWORD_HASH`, argon2/bcrypt), tanpa tabel user.
+- Kredensial dikelola di Supabase Auth; server memverifikasi lewat `supabase.auth.signInWithPassword` (tanpa menyimpan hash di aplikasi).
+- Otorisasi: email hasil login harus terdaftar di `ADMIN_EMAIL`.
 - Sesi: cookie bertanda tangan (`SESSION_SECRET`), `httpOnly`, `Secure`, `SameSite=Lax`, kedaluwarsa 12 jam.
 - Middleware melindungi `/admin/*` dan `/api/admin/*`.
 - Alternatif yang lebih ringan: Cloudflare Access di depan `/admin`.
@@ -232,8 +233,11 @@ X-Content-Type-Options: nosniff
 ## 9. Environment
 
 ```
-ADMIN_PASSWORD_HASH=
+SUPABASE_URL=
+SUPABASE_SECRET_KEY=
+SUPABASE_PUBLISHABLE_KEY=
 SESSION_SECRET=
+ADMIN_EMAIL=
 # Binding Cloudflare (wrangler.toml): DB (D1), TEMPLATES_BUCKET (R2)
 ```
 

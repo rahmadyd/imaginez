@@ -1,5 +1,5 @@
 ﻿import crypto from "crypto";
-import { getSupabase, isSupabaseConfigured } from "./db";
+import { getAuthClient, isAuthConfigured } from "./db";
 
 const COOKIE_NAME = "pb_admin";
 const MAX_AGE = 60 * 60 * 12;
@@ -74,44 +74,28 @@ export function getSessionCookieName() {
   return COOKIE_NAME;
 }
 
+function allowedAdminEmails(): string[] {
+  return (process.env.ADMIN_EMAIL || "")
+    .split(",")
+    .map((value) => value.trim().toLowerCase())
+    .filter(Boolean);
+}
+
 export async function verifyCredentials(email: string, password: string): Promise<boolean> {
   const normalized = email.trim().toLowerCase();
-  const digest = crypto.createHash("sha256").update(password).digest("hex");
+  if (!normalized || !password) return false;
+  if (!isAuthConfigured()) return false;
 
-  if (isSupabaseConfigured()) {
-    try {
-      const { data, error } = await getSupabase()
-        .from("admin_accounts")
-        .select("email, password_hash, is_active, role")
-        .eq("email", normalized)
-        .eq("role", "admin")
-        .maybeSingle();
-      if (error) throw error;
-      if (data && data.is_active !== false) {
-        let match = false;
-        try {
-          match = crypto.timingSafeEqual(Buffer.from(digest), Buffer.from(String(data.password_hash)));
-        } catch {
-          match = false;
-        }
-        return match;
-      }
-      return false;
-    } catch {
-      // Supabase unavailable: fall back to env credentials for resilience
-    }
-  }
-
-  const hash = process.env.ADMIN_PASSWORD_HASH;
-  const adminEmail = (process.env.ADMIN_EMAIL || "").trim().toLowerCase();
-  if (!hash) {
-    if (process.env.NODE_ENV === "production") return false;
-    return normalized === "admin@imaginez.local" && password === "admin";
-  }
-  const expectedEmail = adminEmail || "admin@imaginez.local";
-  if (normalized !== expectedEmail) return false;
   try {
-    return crypto.timingSafeEqual(Buffer.from(digest), Buffer.from(hash));
+    const { data, error } = await getAuthClient().auth.signInWithPassword({
+      email: normalized,
+      password,
+    });
+    if (error || !data.user) return false;
+
+    const allowed = allowedAdminEmails();
+    if (allowed.length === 0) return true;
+    return allowed.includes((data.user.email || "").toLowerCase());
   } catch {
     return false;
   }
