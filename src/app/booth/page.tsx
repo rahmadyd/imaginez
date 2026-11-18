@@ -19,6 +19,7 @@ import { trackEvent } from "@/lib/track-client";
 
 type LoadState = "loading" | "ready" | "empty" | "error";
 const PAGE_VIEW_KEY = "pb_page_view_tracked";
+const VIEWFINDER_MAX_HEIGHT_VH = 52;
 
 function createSessionCode() {
   try {
@@ -333,9 +334,9 @@ function CaptureScreen({ template, photos, activeSlot, camera, onCapture, onCapt
   const [muted, setMuted] = useState(false);
   const audioRef = useRef<AudioContext | null>(null);
   const fileRef = useRef<HTMLInputElement | null>(null);
-  const slot = template.slots[activeSlot];
-  const aspect = slot ? slot.w / slot.h : 2 / 3;
-
+  const nextEmptySlot = photos.findIndex((p) => p === null);
+  const viewSlot = template.slots[nextEmptySlot === -1 ? activeSlot : nextEmptySlot];
+  const aspect = viewSlot ? viewSlot.w / viewSlot.h : 2 / 3;
   const ensureAudio = () => {
     if (muted) return null;
     if (typeof window === "undefined") return null;
@@ -526,9 +527,9 @@ function CaptureScreen({ template, photos, activeSlot, camera, onCapture, onCapt
           <SideDrape side="right" />
           <div className="mx-0 sm:mx-10">
             <MarqueeStrip count={10} className="mb-2 px-2" />
-            <div className="relative p-[2px] border border-gold/70 bg-paper-2/20" style={{ aspectRatio: `${aspect}` }}>
+            <div className="relative mx-auto border border-gold/70 bg-paper-2/20 p-[2px]" style={{ width: `min(100%, calc(${VIEWFINDER_MAX_HEIGHT_VH}vh * ${aspect}))` }}>
               <FiligreeCorners size={30} inset="inset-1" />
-              <div className="relative w-full h-full border border-brass/50 bg-black overflow-hidden">
+              <div className="relative bg-black overflow-hidden" style={{ aspectRatio: `${aspect}` }}>
                 <video ref={camera.setVideoElement} autoPlay playsInline muted className="absolute inset-0 w-full h-full object-cover" style={{ transform: mirrored ? "scaleX(-1)" : "none" }} />
                 {cameraStatus === "starting" && (
                   <div className="absolute inset-0 flex items-center justify-center bg-paper/80">

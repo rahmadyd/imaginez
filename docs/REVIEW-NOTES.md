@@ -76,3 +76,17 @@ Catatan audit dan verifikasi visual untuk setiap layar dan komponen UI sesuai at
   - **konkret:** Lolos. Hasil jepretan identik dengan yang tampil di layar, bukan-behavior berbeda.
   - **state:** Lolos. Preview, hasil strip, dan tombol toggle selalu sinkron.
 - **Catatan atau perbaikan:** `tests/unit/camera.test.ts` (3 tes aturan mirror), `tests/unit/capture.test.ts` (2 tes flip canvas), `tests/e2e/camera.spec.ts` (2 tes: mirror otomatis webcam + toggle manual, keduanya membuktikan canvas capture memakai `scale(-1, 1)` saat preview cermin dan tidak saat preview normal).
+
+## Viewfinder - rasio slot dan area crop identik (2026-11-18)
+- **Konsep:** Kotak preview adalah "jendela" yang jujur: rasio dan area yang terlihat persis sama dengan foto yang akan masuk ke slot, di HP portrait maupun PC landscape.
+- **Perubahan:** `aspect-ratio` dipindah ke elemen yang langsung membungkus `<video>` (bingkai dekoratif keluar dari area preview) dan viewfinder dibatasi `52vh` agar slot portrait tidak membuat tombol jepret terdorong keluar layar. `coverCropRect(sourceW, sourceH, targetAspect)` menjadi fungsi murni yang dipakai capture, padanan `object-fit: cover` + `object-position: center` milik preview. Rasio preview diambil dari slot yang akan diisi (slot kosong pertama), bukan slot sembarang.
+- **Lolos:** swap / squint / palette / font / copy / ritme / konkret / state
+  - **swap:** Lolos. Tidak ada elemen UI baru; hanya koreksi proporsi dan area.
+  - **squint:** Lolos. Preview tetap menjadi fokus dan tanda crop tetap menempel di sudut area video.
+  - **palette:** Lolos. Tidak ada warna/komponen baru.
+  - **font:** Lolos. Tidak ada perubahan tipografi.
+  - **copy:** Lolos. Copy lama dipertahankan; tidak ada teks baru.
+  - **ritme:** Lolos. Margin dan jarak tetap; hanya ukuran viewfinder yang mengikuti rasio slot.
+  - **konkret:** Lolos. Crop center proporsional, bukan pemotongan asal potong.
+  - **state:** Lolos. Preview, countdown, dan flash tetap berada di area yang sama.
+- **Catatan atau perbaikan:** `tests/unit/capture.test.ts` menambah 5 tes `coverCropRect` (landscape/portrait, target landscape/portrait, rasio dan titik tengah); `tests/e2e/camera.spec.ts` membuktikan rasio preview = rasio slot template dan crop canvas identik dengan area yang terlihat (HP 390 px & PC 1280 px, slot portrait 500x800 diuji manual dengan viewfinder 268x429 tanpa tombol terpotong, 2026-11-18).

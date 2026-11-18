@@ -166,10 +166,12 @@ Catatan penting:
 - **Auto-start & satu stream:** begitu layar capture terbuka, kamera langsung dinyalakan bila status masih `idle` (tanpa perlu klik tombol ganti kamera). `start()` bersifat tunggal: panggilan paralel diabaikan While `starting`, stream lama selalu dihentikan (`track.stop()`) sebelum membuka stream baru, dan stream yang tiba terlambat setelah `stop()` ikut dihentikan. Preview diputar ulang (`video.play()`) bila elemen ter-pause, sehingga tidak ada layar hitam saat kamera siap.
 
 ### 7.2 Capture
-`captureFrame(video, targetAspect, maxSide=1920): Promise<ImageBitmap>`
-1. Hitung area potong dari `videoWidth/videoHeight` agar rasionya = `targetAspect` (center crop).
+`captureFrame(video, targetAspect, maxSide=1920, options?): Promise<ImageBitmap>`
+1. Hitung area potong dari `videoWidth/videoHeight` agar rasionya = `targetAspect` (center crop) memakai fungsi murni `coverCropRect(sourceW, sourceH, targetAspect)` → `{ sx, sy, sw, sh }`. Fungsi ini adalah padanan `object-fit: cover` + `object-position: center` yang dipakai preview, sehingga **area yang terlihat di viewfinder identik dengan area yang masuk ke slot**.
 2. Gambar ke canvas, batasi sisi terpanjang ke `maxSide`.
 3. Kembalikan `ImageBitmap`. Foto sudah terpotong sesuai slot, jadi memori hemat.
+
+Viewfinder (S3) memakai rasio slot yang akan diisi (`aspect-ratio` pada elemen yang membungkus `<video>`; bingkai dekoratif berada di luar elemen itu). Preview memakai `object-cover`, dan capture memakai `coverCropRect` → keduanya memotong area video yang sama. Batas tinggi viewfinder (`52vh`) menjaga layout tetap muat di HP portrait tanpa mengubah rasio.
 
 ### 7.3 Compositor (`features/compositor`)
 ```ts

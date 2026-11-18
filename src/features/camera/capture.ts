@@ -7,6 +7,42 @@ export type CaptureOptions = {
 };
 
 /**
+ * CropRect – area sumber video yang dipakai untuk satu hasil capture.
+ */
+export type CropRect = {
+  sx: number;
+  sy: number;
+  sw: number;
+  sh: number;
+};
+
+/**
+ * coverCropRect – menghitung area video yang terlihat setelah di-crop center
+ * mengikuti rasio target (sama dengan `object-fit: cover` + `object-position: center`).
+ *
+ * Fungsi murni: dipakai bersama oleh preview (CSS object-cover) dan capture
+ * (canvas drawImage) supaya area yang terlihat identik dengan hasil jepretan.
+ */
+export function coverCropRect(sourceW: number, sourceH: number, targetAspect: number): CropRect {
+  const sourceAspect = sourceW / sourceH;
+  let sw: number;
+  let sh: number;
+  if (sourceAspect > targetAspect) {
+    sh = sourceH;
+    sw = sh * targetAspect;
+  } else {
+    sw = sourceW;
+    sh = sw / targetAspect;
+  }
+  return {
+    sx: (sourceW - sw) / 2,
+    sy: (sourceH - sh) / 2,
+    sw,
+    sh,
+  };
+}
+
+/**
  * captureFrame – menangkap satu frame dari video, dipotong sesuai rasio target,
  * lalu dibatasi ukuran maksimum.
  *
@@ -68,23 +104,8 @@ export async function captureFrame(
 
   const videoWidth = video.videoWidth;
   const videoHeight = video.videoHeight;
-  const videoAspect = videoWidth / videoHeight;
 
-  // Hitung area crop di dalam video
-  let cropWidth: number, cropHeight: number;
-  let cropX = 0, cropY = 0;
-
-  if (videoAspect > targetAspect) {
-    // Video lebih lebar → crop sisi kiri/kanan
-    cropHeight = videoHeight;
-    cropWidth = cropHeight * targetAspect;
-    cropX = (videoWidth - cropWidth) / 2;
-  } else {
-    // Video lebih tinggi → crop atas/bawah
-    cropWidth = videoWidth;
-    cropHeight = cropWidth / targetAspect;
-    cropY = (videoHeight - cropHeight) / 2;
-  }
+  const { sx: cropX, sy: cropY, sw: cropWidth, sh: cropHeight } = coverCropRect(videoWidth, videoHeight, targetAspect);
 
   // Buat canvas untuk memotong
   const cropCanvas = document.createElement("canvas");
