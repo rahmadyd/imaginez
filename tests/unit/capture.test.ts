@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { captureFrame, slotAspect } from "../../src/features/camera/capture";
+import { captureFrame, coverCropRect, slotAspect } from "../../src/features/camera/capture";
 
 // Mock createImageBitmap karena jsdom tidak mendukung
 const mockCreateImageBitmap = vi.fn();
@@ -226,6 +226,42 @@ describe("captureFrame", () => {
 
     expect(mockContexts[0].scale).not.toHaveBeenCalled();
     expect(mockContexts[0].translate).not.toHaveBeenCalled();
+  });
+});
+
+describe("coverCropRect", () => {
+  it("memotong video landscape ke slot 2:1 secara center", () => {
+    expect(coverCropRect(1920, 1080, 2)).toEqual({ sx: 0, sy: 60, sw: 1920, sh: 960 });
+  });
+
+  it("memotong video portrait ke slot 2:1 secara center", () => {
+    expect(coverCropRect(1080, 1920, 2)).toEqual({ sx: 0, sy: 690, sw: 1080, sh: 540 });
+  });
+
+  it("memotong video landscape ke slot portrait secara center", () => {
+    expect(coverCropRect(1920, 1080, 0.625)).toEqual({ sx: 622.5, sy: 0, sw: 675, sh: 1080 });
+  });
+
+  it("memotong video portrait ke slot portrait tanpa memotong sisi", () => {
+    expect(coverCropRect(1080, 1920, 0.625)).toEqual({ sx: 0, sy: 96, sw: 1080, sh: 1728 });
+  });
+
+  it("selalu menghasilkan area dengan rasio target dan terpusat", () => {
+    const cases: [number, number, number][] = [
+      [1920, 1080, 2],
+      [1920, 1080, 0.625],
+      [1080, 1920, 2],
+      [1080, 1920, 1],
+      [640, 480, 4 / 3],
+    ];
+    for (const [w, h, aspect] of cases) {
+      const rect = coverCropRect(w, h, aspect);
+      expect(rect.sw / rect.sh).toBeCloseTo(aspect, 6);
+      expect(rect.sx + rect.sw / 2).toBeCloseTo(w / 2, 6);
+      expect(rect.sy + rect.sh / 2).toBeCloseTo(h / 2, 6);
+      expect(rect.sw).toBeLessThanOrEqual(w + 0.0001);
+      expect(rect.sh).toBeLessThanOrEqual(h + 0.0001);
+    }
   });
 });
 

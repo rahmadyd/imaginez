@@ -1,10 +1,12 @@
 import { expect, test } from "@playwright/test";
 
 type MirrorProbe = { flips: number };
+type DrawProbe = { sx: number; sy: number; sw: number; sh: number };
 
 declare global {
   interface Window {
     __mirrorProbe?: MirrorProbe;
+    __drawProbe?: DrawProbe[];
   }
 }
 
@@ -33,10 +35,24 @@ test.describe("kamera", () => {
   test.beforeEach(async ({ page }) => {
     await page.addInitScript(() => {
       window.__mirrorProbe = { flips: 0 };
-      const original = CanvasRenderingContext2D.prototype.scale;
+      window.__drawProbe = [];
+      const originalScale = CanvasRenderingContext2D.prototype.scale;
       CanvasRenderingContext2D.prototype.scale = function (x: number, y: number) {
         if (x === -1) window.__mirrorProbe!.flips += 1;
-        return original.call(this, x, y);
+        return originalScale.call(this, x, y);
+      };
+      const originalDraw = CanvasRenderingContext2D.prototype.drawImage;
+      CanvasRenderingContext2D.prototype.drawImage = function (...args: unknown[]) {
+        const source = args[0];
+        if (source instanceof HTMLVideoElement) {
+          window.__drawProbe!.push({
+            sx: args[1] as number,
+            sy: args[2] as number,
+            sw: args[3] as number,
+            sh: args[4] as number,
+          });
+        }
+        return (originalDraw as (...a: unknown[]) => void).apply(this, args);
       };
     });
   });
@@ -78,5 +94,41 @@ test.describe("kamera", () => {
 
     await shutter.click();
     await expect.poll(flipCount.bind(null, page), { timeout: 20000 }).toBeGreaterThan(0);
+  });
+
+  test("viewfinder memakai rasio slot dan capture memotong area yang sama", async ({ page }) => {
+    await openCaptureScreen(page);
+
+    const template = await page.request.get("/api/templates").then((r) => r.json() as Promise<{ templates: { slots: { w: number; h: number }[] }[] }>);
+    const slotAspect = template.templates[0].slots[0].w / template.templates[0].slots[0].h;
+
+    const preview = await page.evaluate(() => {
+      const video = document.querySelector("video") as HTMLVideoElement | null;
+      const rect = video!.getBoundingClientRect();
+      const videoW = video!.videoWidth;
+      const videoH = video!.videoHeight;
+      const scale = Math.max(rect.width / videoW, rect.height / videoH);
+      return {
+        aspect: rect.width / rect.height,
+        sx: (videoW - rect.width / scale) / 2,
+        sy: (videoH - rect.height / scale) / 2,
+        sw: rect.width / scale,
+        sh: rect.height / scale,
+      };
+    });
+
+    // kotak preview persis mengikuti rasio slot template
+    expect(preview.aspect).toBeCloseTo(slotAspect, 3);
+
+    await page.getByLabel("Take portrait").click();
+    await expect(page.getByRole("button", { name: "Select camera" })).toBeEnabled({ timeout: 20000 });
+
+    const crop = await page.evaluate(() => window.__drawProbe?.[0] ?? null);
+    expect(crop).not.toBeNull();
+    // area yang dipotong sama persis dengan area yang terlihat di preview
+    expect(crop!.sx).toBeCloseTo(preview.sx, 1);
+    expect(crop!.sy).toBeCloseTo(preview.sy, 1);
+    expect(crop!.sw).toBeCloseTo(preview.sw, 0);
+    expect(crop!.sh).toBeCloseTo(preview.sh, 0);
   });
 });
