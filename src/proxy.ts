@@ -1,7 +1,7 @@
 ﻿import { NextRequest, NextResponse } from "next/server";
 import { createServerClient } from "@supabase/ssr";
 import { isAllowedAdminEmail } from "@/lib/auth";
-import { getSessionEnv } from "@/lib/supabase/session";
+import { getSessionCookieOptions, getSessionEnv } from "@/lib/supabase/session";
 import { buildContentSecurityPolicy } from "@/lib/csp";
 import { resolveLoginTarget, sanitizeNextPath } from "@/lib/next-path";
 
@@ -27,13 +27,17 @@ export async function proxy(request: NextRequest) {
     const env = getSessionEnv();
     if (env) {
       const supabase = createServerClient(env.url, env.key, {
+        cookieOptions: getSessionCookieOptions(),
         cookies: {
           getAll: () => request.cookies.getAll(),
-          setAll: (items) => {
+          setAll: (items, headers) => {
             for (const { name, value } of items) request.cookies.set(name, value);
             response = NextResponse.next({ request: { headers: requestHeaders } });
             for (const { name, value, options } of items) {
               response.cookies.set(name, value, options as Parameters<typeof response.cookies.set>[2]);
+            }
+            for (const [key, value] of Object.entries(headers || {})) {
+              response.headers.set(key, value);
             }
           },
         },

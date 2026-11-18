@@ -42,5 +42,7 @@ export async function POST(req: NextRequest) {
   } catch {
     return NextResponse.json({ error: "Email atau kata sandi salah." }, { status: 401 });
   }
-  return NextResponse.json({ ok: true });
+  const res = NextResponse.json({ ok: true });
+  res.headers.set("Cache-Control", "private, no-store");
+  return res;
 }

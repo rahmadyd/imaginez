@@ -1,6 +1,8 @@
 import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
 
+const SESSION_MAX_AGE = 60 * 60 * 12;
+
 export type SessionEnv = { url: string; key: string };
 
 export function getSessionEnv(): SessionEnv | null {
@@ -13,11 +15,22 @@ export function getSessionEnv(): SessionEnv | null {
   return { url, key };
 }
 
+export function getSessionCookieOptions() {
+  return {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
+    sameSite: "lax" as const,
+    path: "/",
+    maxAge: SESSION_MAX_AGE,
+  };
+}
+
 export async function createSessionClient() {
   const env = getSessionEnv();
   if (!env) return null;
   const store = await cookies();
   return createServerClient(env.url, env.key, {
+    cookieOptions: getSessionCookieOptions(),
     cookies: {
       getAll: () => store.getAll(),
       setAll: (items) => {

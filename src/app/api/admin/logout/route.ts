@@ -10,5 +10,7 @@ export async function POST() {
       return NextResponse.json({ ok: true });
     }
   }
-  return NextResponse.json({ ok: true });
+  const res = NextResponse.json({ ok: true });
+  res.headers.set("Cache-Control", "private, no-store");
+  return res;
 }
