@@ -91,7 +91,7 @@ Legenda: **AC** = acceptance criteria.
   **AC:** mengulang satu slot hanya mengubah slot itu. File unduhan benar berukuran canvas template. (src/features/compositor/render.ts)
 
 - [x] **T3.8 S5 Selesai + e2e privasi**
-  **AC:** Playwright (kamera palsu) menjalankan alur penuh dan membuktikan: (a) tidak ada request keluar dengan body gambar, (b) setelah "Selesai", localStorage, sessionStorage, IndexedDB, dan Cache Storage tidak memuat data foto. (	ests/e2e/privacy.spec.ts)
+  **AC:** Playwright (kamera palsu) menjalankan alur penuh dan membuktikan: (a) tidak ada request keluar dengan body gambar, (b) setelah "Selesai", localStorage, sessionStorage, IndexedDB, dan Cache Storage tidak memuat data foto, (c) kamera mati di halaman hasil (0 track video `live`). (	ests/e2e/privacy.spec.ts)
 ---
 
 ## Fase 4 - Admin

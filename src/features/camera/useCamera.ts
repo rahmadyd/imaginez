@@ -14,6 +14,7 @@ export type UseCameraOptions = {
 
 export type UseCameraResult = {
   videoRef: React.RefObject<HTMLVideoElement | null>;
+  setVideoElement: (el: HTMLVideoElement | null) => void;
   status: CameraStatus;
   error: CameraErrorType | null;
   start: (request?: CameraRequest) => Promise<void>;
@@ -109,6 +110,19 @@ export function useCamera({ initialFacing = "user" }: UseCameraOptions = {}): Us
     }
   }, []);
 
+  const attachStream = useCallback((video: HTMLVideoElement | null) => {
+    const stream = streamRef.current;
+    if (!video || !stream) return;
+    if (video.srcObject === stream) return;
+    video.srcObject = stream;
+    try { void video.play(); } catch { /* autoplay may be blocked */ }
+  }, []);
+
+  const setVideoElement = useCallback((el: HTMLVideoElement | null) => {
+    videoRef.current = el;
+    attachStream(el);
+  }, [attachStream]);
+
   const applyStream = useCallback(async (stream: MediaStream) => {
     streamRef.current = stream;
     const track = stream.getVideoTracks()[0];
@@ -123,12 +137,8 @@ export function useCamera({ initialFacing = "user" }: UseCameraOptions = {}): Us
         prefRef.current = { ...prefRef.current, facing: fm };
       }
     }
-    const video = videoRef.current;
-    if (video) {
-      video.srcObject = stream;
-      try { await video.play(); } catch { /* autoplay may be blocked */ }
-    }
-  }, []);
+    attachStream(videoRef.current);
+  }, [attachStream]);
 
   const openStream = useCallback(async (request: CameraRequest): Promise<MediaStream> => {
     const mediaDevices = typeof navigator === "undefined" ? undefined : navigator.mediaDevices;
@@ -232,6 +242,7 @@ export function useCamera({ initialFacing = "user" }: UseCameraOptions = {}): Us
 
   return {
     videoRef,
+    setVideoElement,
     status,
     error,
     start,

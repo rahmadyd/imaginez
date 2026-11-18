@@ -34,3 +34,17 @@ Catatan audit dan verifikasi visual untuk setiap layar dan komponen UI sesuai at
   - **konkret:** Lolos. Elemen dekoratif meniru fisik: stempel tiket, garis perforasi pemisah bagian, angka seri mono.
   - **state:** Lolos. Empty state dirancang (nol + pesan + badge tren disembunyikan), bukan spinner atau teks polos.
 - **Catatan atau perbaikan:** Angka dashboard kini hanya berasal dari tabel `booth_events` (client tracking via `/api/track`); generator data dummy `getFallbackAnalytics` dihapus. Verifikasi production: KPI 0/0/0/–, kurva tren rata di 0, tabel aktivitas kosong, template milik admin tetap tampil dengan 0 uses. Screenshot: desktop 1280 px & mobile 390 px (dashboard admin, 2026-11-18).
+
+## Kamera - siklus hidup stream (2026-11-18)
+- **Konsep:** Stream kamera hanya hidup saat proses mengambil foto; di halaman hasil (Act III) dan penutup (Act IV) kamera wajib mati, sehingga indikator kamera tidak menyala dan halaman hasil tidak memegang sumber gambar.
+- **Perubahan:** `src/app/booth/page.tsx` menghentikan stream saat fase `reviewing`/`done`; `src/features/camera/useCamera.ts` menambah `setVideoElement` (callback ref) agar `<video>` yang baru ter-mount tetap menerima stream yang sudah terbuka (preview hitam sebelumnya karena `<video>` mount setelah `getUserMedia` selesai).
+- **Lolos:** swap / squint / palette / font / copy / ritme / konkret / state
+  - **swap:** Lolos. Tidak ada elemen UI baru; perilaku kamera yang hilang, bukan tambahan visual.
+  - **squint:** Lolos. Fokus tetap pada strip hasil, tombol aksi tetap hierarkis.
+  - **palette:** Lolos. Tidak ada warna/komponen baru.
+  - **font:** Lolos. Tidak ada perubahan tipografi.
+  - **copy:** Lolos. Copy lama dipertahankan; tidak ada teks baru.
+  - **ritme:** Lolos. Layout halaman hasil tidak berubah.
+  - **konkret:** Lolos. Kamera benar-benar berhenti (indikator hardware padam), bukan sekadar disembunyikan.
+  - **state:** Lolos. State reviewing/done tampil utuh dengan strip, retake, unduh, dan selesai.
+- **Catatan atau perbaikan:** `tests/e2e/privacy.spec.ts` kini merekam `getUserMedia` dan memastikan 0 track video `live` di halaman hasil (desktop 1280 px & mobile 390 px, 2026-11-18). Preview kamera juga ikut diperbaiki (stream tidak lagi hilang saat `<video>` mount belakangan), dan alur unduh template seed kembali terverifikasi end-to-end.

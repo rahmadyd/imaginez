@@ -74,7 +74,8 @@ export default function BoothPage() {
   }, []);
 
   useEffect(() => {
-    if (session.state.phase === "done") camera.stop();
+    const phase = session.state.phase;
+    if (phase === "reviewing" || phase === "done") camera.stop();
   }, [session.state.phase, camera]);
 
   const selected = useMemo(() => templates.find(t => t.id === selectedId) ?? null, [templates, selectedId]);
@@ -521,7 +522,7 @@ function CaptureScreen({ template, photos, activeSlot, camera, onCapture, onCapt
             <div className="relative p-[2px] border border-gold/70 bg-paper-2/20" style={{ aspectRatio: `${aspect}` }}>
               <FiligreeCorners size={30} inset="inset-1" />
               <div className="relative w-full h-full border border-brass/50 bg-black overflow-hidden">
-                <video ref={camera.videoRef} autoPlay playsInline muted className="absolute inset-0 w-full h-full object-cover" style={{ transform: mirrored ? "scaleX(-1)" : "none" }} />
+                <video ref={camera.setVideoElement} autoPlay playsInline muted className="absolute inset-0 w-full h-full object-cover" style={{ transform: mirrored ? "scaleX(-1)" : "none" }} />
                 {cameraStatus === "starting" && (
                   <div className="absolute inset-0 flex items-center justify-center bg-paper/80">
                     <span className="font-body text-xs uppercase tracking-[0.2em] text-ink-2">{copy.s3.switching}</span>
