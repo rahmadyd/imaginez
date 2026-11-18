@@ -35,6 +35,10 @@ export async function GET() {
   } catch {
     // fall back to seeds
   }
-  const templates = await loadSeeds();
-  return NextResponse.json({ templates: templates.filter((t) => (t as { isActive?: boolean }).isActive !== false) });
+  try {
+    const templates = await loadSeeds();
+    return NextResponse.json({ templates: templates.filter((t) => (t as { isActive?: boolean }).isActive !== false) });
+  } catch {
+    return NextResponse.json({ templates: [] });
+  }
 }
