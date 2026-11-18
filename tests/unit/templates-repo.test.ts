@@ -1,11 +1,12 @@
 ﻿import { describe, expect, it, beforeEach } from "vitest";
 import fs from "fs/promises";
+import os from "os";
 import path from "path";
 import { createTemplate, listAllTemplates, listPublishedTemplates, getTemplate, updateTemplate, deleteTemplate, reorderTemplates, buildTemplateRow, adaptRowFromError } from "../../src/lib/templates-repo";
 import { validatePngBuffer } from "../../src/lib/png";
 import type { AdminTemplate } from "../../src/features/templates/schema";
 
-const dataDir = path.join(process.cwd(), "data");
+const dataDir = process.env.IMAGINEZ_DATA_DIR || path.join(os.tmpdir(), "imaginez-vitest-data");
 
 function makeTemplate(id: string, sort: number, published: boolean): AdminTemplate {
   const now = "2026-01-01T00:00:00.000Z";
