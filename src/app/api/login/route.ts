@@ -1,6 +1,7 @@
 ﻿import { NextRequest, NextResponse } from "next/server";
-import { verifyCredentials, createSessionToken, sessionCookie } from "@/lib/auth";
+import { isAllowedAdminEmail } from "@/lib/auth";
 import { checkRateLimit } from "@/lib/rate-limit";
+import { createSessionClient } from "@/lib/supabase/session";
 
 export async function POST(req: NextRequest) {
   const ip = req.headers.get("x-forwarded-for") || "local";
@@ -15,14 +16,31 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Terlalu banyak percobaan. Coba lagi nanti." }, { status: 429 });
   }
   let body: { email?: string; password?: string } = {};
-  try { body = await req.json(); } catch { /* ignore */ }
-  const ok = await verifyCredentials(body.email || "", body.password || "");
-  if (!ok) {
+  try {
+    body = await req.json();
+  } catch {
     return NextResponse.json({ error: "Email atau kata sandi salah." }, { status: 401 });
   }
-  const token = createSessionToken();
-  const res = NextResponse.json({ ok: true });
-  const c = sessionCookie(token);
-  res.cookies.set(c);
-  return res;
+  const email = (body.email || "").trim().toLowerCase();
+  const password = body.password || "";
+  if (!email || !password) {
+    return NextResponse.json({ error: "Email atau kata sandi salah." }, { status: 401 });
+  }
+  const supabase = await createSessionClient();
+  if (!supabase) {
+    return NextResponse.json({ error: "Login belum dikonfigurasi." }, { status: 503 });
+  }
+  try {
+    const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+    if (error || !data.user) {
+      return NextResponse.json({ error: "Email atau kata sandi salah." }, { status: 401 });
+    }
+    if (!isAllowedAdminEmail(data.user.email)) {
+      await supabase.auth.signOut();
+      return NextResponse.json({ error: "Email atau kata sandi salah." }, { status: 401 });
+    }
+  } catch {
+    return NextResponse.json({ error: "Email atau kata sandi salah." }, { status: 401 });
+  }
+  return NextResponse.json({ ok: true });
 }

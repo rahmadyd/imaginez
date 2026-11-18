@@ -17,8 +17,7 @@ pnpm dev
 Lihat `.env.example`.
 - `SUPABASE_URL`, `SUPABASE_SECRET_KEY`, `SUPABASE_STORAGE_BUCKET` - metadata template, share sementara, dan overlay (server-side). Jika kosong, app memakai store lokal `data/` (dev) dan seed `public/seed/`.
 - `SUPABASE_PUBLISHABLE_KEY` - publishable key (`sb_publishable_...`) untuk login admin lewat Supabase Auth.
-- `SESSION_SECRET` - tanda tangan sesi admin.
-- `ADMIN_EMAIL` - email yang boleh login ke dashboard (pisahkan dengan koma jika lebih dari satu).
+- `ADMIN_EMAIL` - email yang boleh login ke dashboard (pisahkan dengan koma jika lebih dari satu). Wajib diisi; jika kosong semua login ditolak.
 
 ### Supabase (production)
 1. Buat project & bucket storage (mis. `templates`).
@@ -32,7 +31,6 @@ Lihat `.env.example`.
    - `SUPABASE_SECRET_KEY` (new 2026 format `sb_secret_...`; legacy `SUPABASE_SERVICE_ROLE_KEY` juga masih didukung)
    - `SUPABASE_PUBLISHABLE_KEY` (new 2026 format `sb_publishable_...`)
    - `SUPABASE_STORAGE_BUCKET`
-   - `SESSION_SECRET`
    - `ADMIN_EMAIL`
 5. Deploy: `pnpm deploy`
 

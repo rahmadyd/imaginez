@@ -1,42 +1,62 @@
 import { describe, expect, it, vi, beforeEach } from "vitest";
+import { NextRequest } from "next/server";
 
-const { signInWithPassword } = vi.hoisted(() => ({ signInWithPassword: vi.fn() }));
-
-vi.mock("../../src/lib/db", () => ({
-  getAuthClient: () => ({ auth: { signInWithPassword } }),
-  isAuthConfigured: () => true,
+const { signInWithPassword, signOut } = vi.hoisted(() => ({
+  signInWithPassword: vi.fn(),
+  signOut: vi.fn(),
 }));
 
-import { verifyCredentials } from "../../src/lib/auth";
+vi.mock("../../src/lib/supabase/session", () => ({
+  createSessionClient: async () => ({
+    auth: { signInWithPassword, signOut },
+  }),
+  getSessionEnv: () => ({ url: "https://example.supabase.co", key: "test-publishable-key" }),
+}));
 
-describe("verifyCredentials (Supabase Auth)", () => {
+import { POST } from "../../src/app/api/login/route";
+
+function loginRequest(body: Record<string, string>) {
+  return new NextRequest("http://localhost:3000/api/login", {
+    method: "POST",
+    body: JSON.stringify(body),
+    headers: { "content-type": "application/json" },
+  });
+}
+
+describe("POST /api/login (sesi Supabase)", () => {
   beforeEach(() => {
     signInWithPassword.mockReset();
+    signOut.mockReset();
     process.env.ADMIN_EMAIL = "admin@example.com";
   });
 
-  it("accepts allowed email with valid credentials", async () => {
+  it("menerima email allowlist dengan kredensial valid", async () => {
     signInWithPassword.mockResolvedValue({ data: { user: { email: "admin@example.com" } }, error: null });
-    await expect(verifyCredentials("admin@example.com", "secret-password")).resolves.toBe(true);
+    const res = await POST(loginRequest({ email: " Admin@Example.com ", password: "secret-password" }));
+    expect(res.status).toBe(200);
+    await expect(res.json()).resolves.toEqual({ ok: true });
     expect(signInWithPassword).toHaveBeenCalledWith({
       email: "admin@example.com",
       password: "secret-password",
     });
   });
 
-  it("rejects invalid credentials", async () => {
+  it("menolak kredensial invalid", async () => {
     signInWithPassword.mockResolvedValue({ data: { user: null }, error: { message: "Invalid login credentials" } });
-    await expect(verifyCredentials("admin@example.com", "wrong")).resolves.toBe(false);
+    const res = await POST(loginRequest({ email: "admin@example.com", password: "salah" }));
+    expect(res.status).toBe(401);
   });
 
-  it("rejects email outside allowlist", async () => {
+  it("menolak email di luar allowlist dan mengakhiri sesi", async () => {
     signInWithPassword.mockResolvedValue({ data: { user: { email: "other@example.com" } }, error: null });
-    await expect(verifyCredentials("other@example.com", "secret-password")).resolves.toBe(false);
+    const res = await POST(loginRequest({ email: "other@example.com", password: "secret-password" }));
+    expect(res.status).toBe(401);
+    expect(signOut).toHaveBeenCalled();
   });
 
-  it("rejects empty input without calling Supabase", async () => {
-    await expect(verifyCredentials("", "")).resolves.toBe(false);
-    await expect(verifyCredentials("admin@example.com", "")).resolves.toBe(false);
+  it("menolak input kosong tanpa memanggil Supabase", async () => {
+    const res = await POST(loginRequest({ email: "", password: "" }));
+    expect(res.status).toBe(401);
     expect(signInWithPassword).not.toHaveBeenCalled();
   });
 });

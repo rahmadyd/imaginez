@@ -1,5 +1,5 @@
 ﻿import { NextRequest, NextResponse } from "next/server";
-import { getSessionCookieName, isAdminAuthenticated } from "@/lib/auth";
+import { isAdminRequest } from "@/lib/auth";
 import { getSupabase, isSupabaseConfigured } from "@/lib/db";
 import type { ActivityItem, DashboardAnalytics, DateRangeKey, LocationStat, TemplatePerformance, TrendPoint } from "@/features/admin/analytics";
 import { getFallbackAnalytics } from "@/features/admin/analytics";
@@ -64,7 +64,7 @@ function bucketIndex(date: Date, range: DateRangeKey, buckets: { start: Date }[]
 }
 
 export async function GET(req: NextRequest) {
-  if (!isAdminAuthenticated(req.cookies.get(getSessionCookieName())?.value)) {
+  if (!(await isAdminRequest())) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
   const range = parseRange(req.nextUrl.searchParams.get("range"));

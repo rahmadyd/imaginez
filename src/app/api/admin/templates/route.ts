@@ -1,7 +1,7 @@
 ﻿import { NextRequest, NextResponse } from "next/server";
 import { listAllTemplates, createTemplate, putOverlay } from "@/lib/templates-repo";
 import { validatePngBuffer } from "@/lib/png";
-import { getSessionCookieName, isAdminAuthenticated } from "@/lib/auth";
+import { isAdminRequest } from "@/lib/auth";
 import { z } from "zod";
 
 const slotSchema = z.object({
@@ -22,8 +22,8 @@ const metaSchema = z.object({
   isActive: z.boolean().optional(),
 });
 
-export async function GET(req: NextRequest) {
-  if (!isAdminAuthenticated(req.cookies.get(getSessionCookieName())?.value)) {
+export async function GET() {
+  if (!(await isAdminRequest())) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
   const templates = await listAllTemplates();
@@ -31,7 +31,7 @@ export async function GET(req: NextRequest) {
 }
 
 export async function POST(req: NextRequest) {
-  if (!isAdminAuthenticated(req.cookies.get(getSessionCookieName())?.value)) {
+  if (!(await isAdminRequest())) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
   const form = await req.formData();

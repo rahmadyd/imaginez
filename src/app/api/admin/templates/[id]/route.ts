@@ -1,7 +1,7 @@
 ﻿import { NextRequest, NextResponse } from "next/server";
 import { getTemplate, updateTemplate, deleteTemplate, putOverlay, deleteOverlay } from "@/lib/templates-repo";
 import { validatePngBuffer } from "@/lib/png";
-import { getSessionCookieName, isAdminAuthenticated } from "@/lib/auth";
+import { isAdminRequest } from "@/lib/auth";
 import { z } from "zod";
 
 const slotSchema = z.object({
@@ -25,8 +25,8 @@ const updateSchema = z.object({
   overlayKey: z.string().min(1).optional(),
 });
 
-export async function GET(req: NextRequest, ctx: { params: Promise<{ id: string }> }) {
-  if (!isAdminAuthenticated(req.cookies.get(getSessionCookieName())?.value)) {
+export async function GET(_req: NextRequest, ctx: { params: Promise<{ id: string }> }) {
+  if (!(await isAdminRequest())) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
   const { id } = await ctx.params;
@@ -36,7 +36,7 @@ export async function GET(req: NextRequest, ctx: { params: Promise<{ id: string 
 }
 
 export async function PUT(req: NextRequest, ctx: { params: Promise<{ id: string }> }) {
-  if (!isAdminAuthenticated(req.cookies.get(getSessionCookieName())?.value)) {
+  if (!(await isAdminRequest())) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
   const { id } = await ctx.params;
@@ -100,8 +100,8 @@ export async function PUT(req: NextRequest, ctx: { params: Promise<{ id: string 
   return NextResponse.json({ ok: true });
 }
 
-export async function DELETE(req: NextRequest, ctx: { params: Promise<{ id: string }> }) {
-  if (!isAdminAuthenticated(req.cookies.get(getSessionCookieName())?.value)) {
+export async function DELETE(_req: NextRequest, ctx: { params: Promise<{ id: string }> }) {
+  if (!(await isAdminRequest())) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
   const { id } = await ctx.params;

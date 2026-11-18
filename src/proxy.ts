@@ -1,16 +1,47 @@
 ﻿import { NextRequest, NextResponse } from "next/server";
-import { verifySessionToken, getSessionCookieName } from "@/lib/auth";
+import { createServerClient } from "@supabase/ssr";
+import { isAllowedAdminEmail } from "@/lib/auth";
+import { getSessionEnv } from "@/lib/supabase/session";
 import { buildContentSecurityPolicy } from "@/lib/csp";
 import { resolveLoginTarget, sanitizeNextPath } from "@/lib/next-path";
 
-export function proxy(request: NextRequest) {
+export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
   const isAdminPage = pathname === "/admin" || pathname.startsWith("/admin/");
   const isAdminApi = pathname === "/api/admin" || pathname.startsWith("/api/admin/");
   const isLoginPage = pathname === "/login" || pathname.startsWith("/login/");
 
-  const token = request.cookies.get(getSessionCookieName())?.value;
-  const authenticated = verifySessionToken(token);
+  const nonce = Buffer.from(crypto.randomUUID()).toString("base64");
+  const isDev = process.env.NODE_ENV === "development";
+  const contentSecurityPolicy = buildContentSecurityPolicy({ nonce, isDev });
+
+  const requestHeaders = new Headers(request.headers);
+  requestHeaders.set("x-nonce", nonce);
+  requestHeaders.set("Content-Security-Policy", contentSecurityPolicy);
+  requestHeaders.set("x-pathname", pathname + request.nextUrl.search);
+
+  let response = NextResponse.next({ request: { headers: requestHeaders } });
+  let authenticated = false;
+
+  if (isAdminPage || isAdminApi || isLoginPage) {
+    const env = getSessionEnv();
+    if (env) {
+      const supabase = createServerClient(env.url, env.key, {
+        cookies: {
+          getAll: () => request.cookies.getAll(),
+          setAll: (items) => {
+            for (const { name, value } of items) request.cookies.set(name, value);
+            response = NextResponse.next({ request: { headers: requestHeaders } });
+            for (const { name, value, options } of items) {
+              response.cookies.set(name, value, options as Parameters<typeof response.cookies.set>[2]);
+            }
+          },
+        },
+      });
+      const { data } = await supabase.auth.getUser();
+      authenticated = Boolean(data.user && isAllowedAdminEmail(data.user.email));
+    }
+  }
 
   if (isAdminApi && !authenticated) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -33,16 +64,6 @@ export function proxy(request: NextRequest) {
     return NextResponse.redirect(url);
   }
 
-  const nonce = Buffer.from(crypto.randomUUID()).toString("base64");
-  const isDev = process.env.NODE_ENV === "development";
-  const contentSecurityPolicy = buildContentSecurityPolicy({ nonce, isDev });
-
-  const requestHeaders = new Headers(request.headers);
-  requestHeaders.set("x-nonce", nonce);
-  requestHeaders.set("Content-Security-Policy", contentSecurityPolicy);
-  requestHeaders.set("x-pathname", pathname + request.nextUrl.search);
-
-  const response = NextResponse.next({ request: { headers: requestHeaders } });
   response.headers.set("Content-Security-Policy", contentSecurityPolicy);
   return response;
 }

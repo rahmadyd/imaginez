@@ -1,7 +1,16 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi, beforeEach } from "vitest";
 import { NextRequest } from "next/server";
-import { createSessionToken } from "../../src/lib/auth";
-import { getSessionCookieName } from "../../src/lib/auth";
+
+const { authState } = vi.hoisted(() => ({
+  authState: { user: null as { email: string } | null },
+}));
+
+vi.mock("@supabase/ssr", () => ({
+  createServerClient: () => ({
+    auth: { getUser: async () => ({ data: { user: authState.user }, error: null }) },
+  }),
+}));
+
 import { resolveLoginTarget, sanitizeNextPath } from "../../src/lib/next-path";
 import { proxy } from "../../src/proxy";
 
@@ -36,36 +45,43 @@ describe("sanitasi next", () => {
 });
 
 describe("proxy admin", () => {
-  it("redirect admin tanpa sesi ke login dan mempertahankan query string", () => {
+  beforeEach(() => {
+    authState.user = { email: "admin@example.com" };
+    process.env.ADMIN_EMAIL = "admin@example.com";
+    process.env.SUPABASE_URL = "https://example.supabase.co";
+    process.env.SUPABASE_PUBLISHABLE_KEY = "test-publishable-key";
+  });
+
+  it("redirect admin tanpa sesi ke login dan mempertahankan query string", async () => {
+    authState.user = null;
     const req = new NextRequest("http://localhost:3000/admin/templates/abc?tab=slot");
-    const res = proxy(req);
+    const res = await proxy(req);
     expect(res.status).toBe(307);
     expect(res.headers.get("location")).toBe(
       "http://localhost:3000/login?next=%2Fadmin%2Ftemplates%2Fabc%3Ftab%3Dslot"
     );
   });
 
-  it("redirect /login ke /admin bila sesi valid", () => {
+  it("redirect /login ke /admin bila sesi valid", async () => {
     const req = new NextRequest("http://localhost:3000/login");
-    req.cookies.set(getSessionCookieName(), createSessionToken());
-    const res = proxy(req);
+    const res = await proxy(req);
     expect(res.status).toBe(307);
     expect(res.headers.get("location")).toBe("http://localhost:3000/admin");
   });
 
-  it("abaikan next eksternal saat sesi valid", () => {
+  it("abaikan next eksternal saat sesi valid", async () => {
     const req = new NextRequest("http://localhost:3000/login?next=https%3A%2F%2Fevil.example%2Fx");
-    req.cookies.set(getSessionCookieName(), createSessionToken());
-    const res = proxy(req);
+    const res = await proxy(req);
     expect(res.status).toBe(307);
     expect(res.headers.get("location")).toBe("http://localhost:3000/admin");
   });
 
-  it("API admin tanpa sesi tetap 401 walau prefetch", () => {
+  it("API admin tanpa sesi tetap 401 walau prefetch", async () => {
+    authState.user = null;
     const req = new NextRequest("http://localhost:3000/api/admin/templates", {
       headers: { "next-router-prefetch": "1" },
     });
-    const res = proxy(req);
+    const res = await proxy(req);
     expect(res.status).toBe(401);
   });
 });
