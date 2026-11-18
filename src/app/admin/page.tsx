@@ -194,7 +194,7 @@ export default function AdminPage() {
           <KpiCard
             title="Total Web Visitors"
             value={formatNum(analytics.kpis.visitors)}
-            note={<TrendBadge value={analytics.kpis.visitorsTrendPct} />}
+            note={analytics.source.visitors === "tracked" ? <TrendBadge value={analytics.kpis.visitorsTrendPct} /> : undefined}
             sub={analytics.source.visitors === "empty" ? "Belum ada data" : "Tracked"}
           />
           <KpiCard
@@ -206,7 +206,7 @@ export default function AdminPage() {
           <KpiCard
             title="Downloads / Shares"
             value={formatNum(analytics.kpis.downloads + analytics.kpis.shares)}
-            note={<TrendBadge value={analytics.kpis.downloadsSharesTrendPct} />}
+            note={analytics.source.downloads === "tracked" ? <TrendBadge value={analytics.kpis.downloadsSharesTrendPct} /> : undefined}
             sub={`${formatNum(analytics.kpis.downloads)} downloads · ${formatNum(analytics.kpis.shares)} shares`}
           />
           <KpiCard
