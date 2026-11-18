@@ -213,5 +213,49 @@ describe("useCamera", () => {
     unmount();
     expect(track.stop).toHaveBeenCalled();
   });
+
+  it("setVideoElement memasang stream yang sudah terbuka pada video yang mount belakangan", async () => {
+    const stream = createStream([createTrack()]);
+    getUserMedia.mockResolvedValue(stream);
+    const { result } = renderHook(() => useCamera());
+    await act(async () => { await result.current.start(); });
+    const video = document.createElement("video");
+    act(() => { result.current.setVideoElement(video); });
+    expect(video.srcObject).toBe(stream);
+  });
+
+  it("start paralel hanya membuka satu stream", async () => {
+    const stream = createStream([createTrack()]);
+    getUserMedia.mockResolvedValue(stream);
+    const { result } = renderHook(() => useCamera());
+    await act(async () => { await Promise.all([result.current.start(), result.current.start()]); });
+    expect(getUserMedia).toHaveBeenCalledTimes(1);
+    expect(result.current.status).toBe("active");
+  });
+
+  it("stop saat start berjalan menutup stream yang telat tiba", async () => {
+    let resolveStream: (s: MediaStream) => void = () => {};
+    getUserMedia.mockImplementation(() => new Promise<MediaStream>((resolve) => { resolveStream = resolve; }));
+    const { result } = renderHook(() => useCamera());
+    let pending: Promise<void> = Promise.resolve();
+    act(() => { pending = result.current.start(); });
+    act(() => { result.current.stop(); });
+    const late = createStream([createTrack()]);
+    resolveStream(late);
+    await act(async () => { await pending; });
+    expect(late.getTracks()[0].stop).toHaveBeenCalled();
+    expect(result.current.status).toBe("idle");
+  });
+
+  it("start setelah switch tidak menyisakan stream lama hidup", async () => {
+    const first = createStream([createTrack({ deviceId: "a" })]);
+    const second = createStream([createTrack({ deviceId: "b" })]);
+    getUserMedia.mockResolvedValueOnce(first).mockResolvedValueOnce(second);
+    const { result } = renderHook(() => useCamera());
+    await act(async () => { await result.current.start(); });
+    await act(async () => { await result.current.selectDevice("b"); });
+    expect(first.getTracks()[0].stop).toHaveBeenCalledTimes(1);
+    expect(second.getTracks()[0].stop).not.toHaveBeenCalled();
+  });
 });
 

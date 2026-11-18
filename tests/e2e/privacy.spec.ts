@@ -64,6 +64,13 @@ test.describe("privasi fase 3", () => {
     // capture: ambil foto sampai semua slot terisi (jumlah slot varies per template)
     const shutter = page.getByLabel("Take portrait");
     await expect(shutter).toBeVisible({ timeout: 15000 });
+
+    // preview harus langsung hidup saat layar kamera terbuka (tanpa layar hitam)
+    await expect.poll(async () => page.evaluate(() => {
+      const video = document.querySelector("video") as HTMLVideoElement | null;
+      return Boolean(video && video.srcObject && !video.paused && video.readyState >= 2);
+    }), { timeout: 15000 }).toBe(true);
+
     const keepsake = page.getByRole("button", { name: "Claim Your Keepsake" });
     for (let shot = 0; shot < 12; shot++) {
       if (await keepsake.isVisible().catch(() => false)) break;
