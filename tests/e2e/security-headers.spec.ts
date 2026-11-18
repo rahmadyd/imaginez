@@ -55,7 +55,7 @@ test.describe("header keamanan", () => {
     expect(response?.headers()["content-security-policy"]).toContain(
       "script-src 'self'"
     );
-    await expect(page.getByRole("heading", { name: "Foto strip, tanpa jejak." })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Step Into the Spotlight" })).toBeVisible();
 
     const runtimeLoaded = await page.evaluate(() => {
       return typeof (window as unknown as { __next_f?: unknown }).__next_f !== "undefined";

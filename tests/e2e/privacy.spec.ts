@@ -12,6 +12,18 @@ function isImageLike(request: Request): boolean {
 
 test.describe("privasi fase 3", () => {
   test("alur penuh: izin kamera device, capture, review, unduh, selesai tanpa kebocoran", async ({ page }) => {
+    test.setTimeout(180000);
+    await page.addInitScript(() => {
+      const w = window as unknown as { __cameraStreams?: MediaStream[] };
+      w.__cameraStreams = [];
+      const original = navigator.mediaDevices.getUserMedia.bind(navigator.mediaDevices);
+      navigator.mediaDevices.getUserMedia = async (constraints) => {
+        const stream = await original(constraints);
+        w.__cameraStreams?.push(stream);
+        return stream;
+      };
+    });
+
     const suspicious: string[] = [];
     page.on("request", (req) => {
       const method = req.method();
@@ -35,48 +47,63 @@ test.describe("privasi fase 3", () => {
     });
 
     await page.goto("/booth", { waitUntil: "networkidle" });
-    await expect(page.getByRole("heading", { name: "Pilih strip" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Select Your Frame" })).toBeVisible();
 
     // pilih template pertama
-    const firstTemplate = page.locator("button:has-text('foto')").first();
+    const firstTemplate = page.locator("button").filter({ hasText: /portrait/ }).first();
     await firstTemplate.click();
-    await page.getByRole("button", { name: "Lanjut" }).click();
+    await page.getByRole("button", { name: "Take Your Position" }).click();
 
     // S2 primer izin kamera -> klik izinkan (kamera device/fake stream via Playwright args)
-    await expect(page.getByRole("heading", { name: "Sebelum mulai" })).toBeVisible();
-    await expect(page.getByText("Kamera hanya jalan di tab ini.")).toBeVisible();
-    await expect(page.getByText("Fotomu tidak dikirim ke mana pun.")).toBeVisible();
-    await expect(page.getByText("Hilang waktu kamu tekan Selesai.")).toBeVisible();
-    await page.getByRole("button", { name: "Izinkan kamera" }).click();
+    await expect(page.getByRole("heading", { name: "Before the Curtain Rises" })).toBeVisible();
+    await expect(page.getByText("The camera performs only within this tab.")).toBeVisible();
+    await expect(page.getByText("Your portraits are never sent anywhere.")).toBeVisible();
+    await expect(page.getByText("All traces vanish when you close the act.")).toBeVisible();
+    await page.getByRole("button", { name: "Grant the Stage" }).click();
 
-    // capture: otomatis ambil semua slot
-    await expect(page.getByLabel("Ambil foto")).toBeVisible({ timeout: 15000 });
-    await page.getByLabel("Ambil foto").click();
+    // capture: ambil foto sampai semua slot terisi (jumlah slot varies per template)
+    const shutter = page.getByLabel("Take portrait");
+    await expect(shutter).toBeVisible({ timeout: 15000 });
+    const keepsake = page.getByRole("button", { name: "Claim Your Keepsake" });
+    for (let shot = 0; shot < 12; shot++) {
+      if (await keepsake.isVisible().catch(() => false)) break;
+      await shutter.click({ timeout: 15000 }).catch(() => undefined);
+      await page.waitForTimeout(300);
+    }
 
     // tunggu review (strip hasil + tombol unduh)
-    await expect(page.getByRole("button", { name: "Unduh" })).toBeVisible({ timeout: 120000 });
+    await expect(keepsake).toBeVisible({ timeout: 120000 });
+
+    // kamera harus mati di halaman hasil: tidak ada track video yang masih live
+    const liveVideoTracks = await page.evaluate(() => {
+      const streams = (window as unknown as { __cameraStreams?: MediaStream[] }).__cameraStreams ?? [];
+      return streams.flatMap((stream) => stream.getVideoTracks()).filter((track) => track.readyState === "live").length;
+    });
+    expect(liveVideoTracks, "kamera harus mati saat berada di halaman hasil").toBe(0);
 
     // unduh
     const [download] = await Promise.all([
       page.waitForEvent("download"),
-      page.getByRole("button", { name: "Unduh" }).click(),
+      page.getByRole("button", { name: "Claim Your Keepsake" }).click(),
     ]);
     expect(await download.suggestedFilename()).toMatch(/photobooth-.*\.png/);
 
     // selesai & hapus
-    await page.getByRole("button", { name: "Selesai & hapus" }).click();
-    await expect(page.getByRole("heading", { name: "Sudah terhapus." })).toBeVisible();
-    await expect(page.getByText("0 foto tersimpan di server.")).toBeVisible();
+    await page.getByRole("button", { name: "Close the Act" }).click();
+    await expect(page.getByRole("heading", { name: "The Curtain Falls." })).toBeVisible();
+    await expect(page.getByText("Session cleared. Local portraits removed from memory.")).toBeVisible();
 
     // (b) storage kosong dari data foto
     const storage = await page.evaluate(async () => {
       const lsKeys = Object.keys(localStorage);
       const ssKeys = Object.keys(sessionStorage);
+      const lsValues = lsKeys.map((k) => localStorage.getItem(k) ?? "");
+      const ssValues = ssKeys.map((k) => sessionStorage.getItem(k) ?? "");
       const idbNames: string[] = [];
       if ("databases" in indexedDB) {
         try {
           const dbs = await indexedDB.databases();
-          for (const d of dbs) if (d.name) idbNames.push(d.name);
+          for (const db of dbs) if (db.name) idbNames.push(db.name);
         } catch {
           // ignore
         }
@@ -85,14 +112,19 @@ test.describe("privasi fase 3", () => {
       if ("caches" in window) {
         try { cacheKeys = await caches.keys(); } catch { /* ignore */ }
       }
-      return { lsKeys, ssKeys, idbNames, cacheKeys };
+      return { lsKeys, ssKeys, lsValues, ssValues, idbNames, cacheKeys };
     });
 
-    expect(storage.ssKeys).toEqual([]);
+    const storedPhotoLike = [...storage.ssValues, ...storage.lsValues].some(
+      (value) => value.startsWith("data:") || value.startsWith("blob:") || value.length > 512
+    );
+    expect(storedPhotoLike, "foto tidak boleh disimpan di storage").toBe(false);
+    // hanya flag non-foto yang boleh disimpan (deduplikasi page_view)
+    expect(storage.ssKeys.filter((k) => k !== "pb_page_view_tracked")).toEqual([]);
     expect(storage.idbNames).toEqual([]);
     expect(storage.cacheKeys).toEqual([]);
-    // localStorage only non-photo prefs allowed; in this flow should be empty
-    expect(storage.lsKeys).toEqual([]);
+    // localStorage hanya boleh memuat preferensi non-foto (kamera)
+    expect(storage.lsKeys.filter((k) => k !== "pb:camera")).toEqual([]);
 
     expect(suspicious, `Suspicious requests: ${suspicious.join("; ")}`).toEqual([]);
   });
