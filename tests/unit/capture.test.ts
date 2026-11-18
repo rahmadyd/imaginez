@@ -23,6 +23,10 @@ let mockContexts: CanvasRenderingContext2D[] = [];
 function createMockCanvasContext(): CanvasRenderingContext2D {
   const ctx = {
     drawImage: vi.fn(),
+    save: vi.fn(),
+    restore: vi.fn(),
+    translate: vi.fn(),
+    scale: vi.fn(),
   } as unknown as CanvasRenderingContext2D;
   mockContexts.push(ctx);
   return ctx;
@@ -202,6 +206,26 @@ describe("captureFrame", () => {
       690, 0, 540, 1080, // crop horizontal untuk 1:2
       0, 0, 540, 1080
     );
+  });
+
+  it("mencerminkan hasil secara horizontal saat opsi mirror aktif", async () => {
+    const video = createMockVideo(1920, 1080);
+
+    await captureFrame(video, 16 / 9, 1920, { mirror: true });
+
+    expect(mockContexts[0].save).toHaveBeenCalled();
+    expect(mockContexts[0].translate).toHaveBeenCalledWith(1920, 0);
+    expect(mockContexts[0].scale).toHaveBeenCalledWith(-1, 1);
+    expect(mockContexts[0].restore).toHaveBeenCalled();
+  });
+
+  it("tidak mencerminkan hasil secara default", async () => {
+    const video = createMockVideo(1920, 1080);
+
+    await captureFrame(video, 16 / 9, 1920);
+
+    expect(mockContexts[0].scale).not.toHaveBeenCalled();
+    expect(mockContexts[0].translate).not.toHaveBeenCalled();
   });
 });
 

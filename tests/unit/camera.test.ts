@@ -259,3 +259,42 @@ describe("useCamera", () => {
   });
 });
 
+describe("aturan mirror kamera", () => {
+  function useMobileMode() {
+    window.matchMedia = vi.fn().mockImplementation((q: string) => ({ matches: q.includes("coarse"), media: q })) as unknown as typeof window.matchMedia;
+    Object.defineProperty(navigator, "maxTouchPoints", { configurable: true, value: 5 });
+  }
+
+  it("kamera depan mobile otomatis cermin", async () => {
+    useMobileMode();
+    getUserMedia.mockResolvedValue(createStream([createTrack({ facingMode: "user" })]));
+    const { result } = renderHook(() => useCamera());
+    await act(async () => { await result.current.start(); });
+    expect(result.current.mode).toBe("mobile");
+    expect(result.current.mirrored).toBe(true);
+  });
+
+  it("kamera belakang mobile otomatis tidak cermin", async () => {
+    useMobileMode();
+    getUserMedia.mockResolvedValue(createStream([createTrack({ facingMode: "user" })]));
+    const { result } = renderHook(() => useCamera());
+    await act(async () => { await result.current.start(); });
+    getUserMedia.mockResolvedValue(createStream([createTrack({ facingMode: "environment" })]));
+    await act(async () => { await result.current.switchFacing(); });
+    expect(result.current.facing).toBe("environment");
+    expect(result.current.mirrored).toBe(false);
+  });
+
+  it("webcam desktop cermin otomatis dan toggle manual tetap berlaku", async () => {
+    getUserMedia.mockResolvedValue(createStream([createTrack({ facingMode: "user" })]));
+    const { result } = renderHook(() => useCamera());
+    await act(async () => { await result.current.start(); });
+    expect(result.current.mode).toBe("desktop");
+    expect(result.current.mirrored).toBe(true);
+    act(() => { result.current.setPreviewMirrored(false); });
+    expect(result.current.mirrored).toBe(false);
+    act(() => { result.current.setPreviewMirrored(true); });
+    expect(result.current.mirrored).toBe(true);
+  });
+});
+
