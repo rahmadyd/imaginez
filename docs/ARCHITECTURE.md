@@ -209,7 +209,7 @@ Pemicu: tombol Selesai, idle timeout (`idle.ts`), `pagehide`, dan ganti template
 ### 7.6 Autentikasi admin
 - Kredensial dikelola di Supabase Auth; server memverifikasi lewat `supabase.auth.signInWithPassword` (tanpa menyimpan hash di aplikasi).
 - Otorisasi: email hasil login harus terdaftar di `ADMIN_EMAIL` (kosong = semua login ditolak).
-- Sesi: dimiliki Supabase Auth — `@supabase/ssr` menyimpan access/refresh token di cookie `httpOnly`, `Secure`, `SameSite=Lax`, kedaluwarsa 12 jam; refresh token diperpanjang server saat access token kedaluwarsa. Tidak ada secret sesi lokal.
+- Sesi: dimiliki Supabase Auth — `@supabase/ssr` menyimpan access/refresh token di cookie `httpOnly`, `Secure`, `SameSite=Lax`. Masa berlaku sesi mengikuti Supabase Auth (access token 1 jam, refresh token diperpanjang server); tombol "Keluar" mencabut refresh token di Supabase. Tidak ada secret sesi lokal.
 - Middleware melindungi `/admin/*` dan `/api/admin/*` (validasi `auth.getUser()` + allowlist email).
 - Alternatif yang lebih ringan: Cloudflare Access di depan `/admin`.
 
