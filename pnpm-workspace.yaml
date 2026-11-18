@@ -10,6 +10,6 @@ verifyDepsBeforeRun: false
 
 supportedArchitectures:
   os:
-    - win32
+    - current
   cpu:
-    - x64
+    - current
