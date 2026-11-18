@@ -25,6 +25,7 @@ Lihat `.env.example`.
    - `migrations/supabase_init.sql` (tabel `templates`)
    - `migrations/supabase_analytics.sql` (`booth_events`, kolom `is_active`/`usage_count`)
    - `migrations/supabase_photo_shares.sql` (tabel `photo_shares` untuk share sementara TTL ~5 menit)
+   - `migrations/supabase_align.sql` (hanya untuk database lama: `published` integer → boolean, `slots_json` text → jsonb, tambah `is_active`/`usage_count`/`booth_events`)
 3. Buat user admin di Supabase Dashboard → Authentication → Users, lalu catat emailnya.
 4. Set env vars di Cloudflare Dashboard → Workers → Settings → Variables and Secrets:
    - `SUPABASE_URL`

@@ -87,8 +87,7 @@ describe("buildTemplateRow (skema templates)", () => {
   it("menyesuaikan baris untuk skema lama (published integer, slots json text)", () => {
     const row = buildTemplateRow(makeTemplate("x", 0, true), legacy);
     expect(row.published).toBe(1);
-    expect(typeof row.slots_json).toBe("string");
-    expect(JSON.parse(row.slots_json as string)).toHaveLength(1);
+    expect(Array.isArray(row.slots_json)).toBe(true);
     expect(row).not.toHaveProperty("is_active");
     expect(row).not.toHaveProperty("usage_count");
     expect(row.overlay_key).toBe("x.png");
@@ -104,7 +103,7 @@ describe("buildTemplateRow (skema templates)", () => {
 
   it("fallback aman saat skema tidak terdeteksi", () => {
     const row = buildTemplateRow(makeTemplate("x", 0, false), {});
-    expect(typeof row.slots_json).toBe("string");
+    expect(Array.isArray(row.slots_json)).toBe(true);
     expect(row.published).toBe(false);
   });
 });
@@ -126,14 +125,6 @@ describe("adaptRowFromError", () => {
       message: 'invalid input syntax for type integer: "false"',
     });
     expect(next?.published).toBe(0);
-  });
-
-  it("mengubah slots json menjadi string bila kolom text", () => {
-    const next = adaptRowFromError({ slots_json: [{ x: 1 }] }, {
-      code: "22P02",
-      message: 'invalid input syntax for type json',
-    });
-    expect(typeof next?.slots_json).toBe("string");
   });
 
   it("mengembalikan null untuk error lain", () => {

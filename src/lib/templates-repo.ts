@@ -67,21 +67,13 @@ function isIntegerColumn(info: ColumnInfo | undefined): boolean {
   return info?.type === "integer" || info?.type === "number";
 }
 
-function isJsonColumn(info: ColumnInfo | undefined): boolean {
-  return info?.type === "jsonb" || info?.type === "json" || info?.format === "json";
-}
-
 export function buildTemplateRow(t: AdminTemplate, schema: ColumnSchema): Record<string, unknown> {
   const row: Record<string, unknown> = adminToRow(t);
   const known = Object.keys(schema).length > 0;
-  if (!known) {
-    row.slots_json = JSON.stringify(t.slots);
-    return row;
-  }
+  if (!known) return row;
   for (const key of Object.keys(row)) {
     if (!(key in schema)) delete row[key];
   }
-  if (!isJsonColumn(schema.slots_json)) row.slots_json = JSON.stringify(t.slots);
   if (isIntegerColumn(schema.published)) row.published = t.published ? 1 : 0;
   if (isIntegerColumn(schema.is_active)) row.is_active = t.isActive ? 1 : 0;
   return row;
@@ -105,10 +97,6 @@ export function adaptRowFromError(
     }
     if ("is_active" in next && typeof next.is_active === "boolean") {
       next.is_active = next.is_active ? 1 : 0;
-      return next;
-    }
-    if ("slots_json" in next && typeof next.slots_json !== "string") {
-      next.slots_json = JSON.stringify(next.slots_json);
       return next;
     }
   }
