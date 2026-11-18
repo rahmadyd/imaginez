@@ -25,6 +25,7 @@ export type UseCameraResult = {
   activeDeviceId: string | null;
   previewMirrored: boolean;
   setPreviewMirrored: (v: boolean) => void;
+  mirrored: boolean;
   switchFacing: () => Promise<void>;
   selectDevice: (id: string) => Promise<void>;
   refreshDevices: () => Promise<MediaDeviceInfo[]>;
@@ -250,6 +251,9 @@ export function useCamera({ initialFacing = "user" }: UseCameraOptions = {}): Us
 
   const mode = resolveEffectiveMode(baseMode, facingSetting, status === "active");
 
+  // Kamera depan (selfie) otomatis cermin, kamera belakang tidak; desktop memakai toggle manual.
+  const mirrored = facing === "environment" ? false : baseMode === "mobile" ? true : previewMirrored;
+
   return {
     videoRef,
     setVideoElement,
@@ -263,6 +267,7 @@ export function useCamera({ initialFacing = "user" }: UseCameraOptions = {}): Us
     activeDeviceId,
     previewMirrored,
     setPreviewMirrored,
+    mirrored,
     switchFacing,
     selectDevice,
     refreshDevices,

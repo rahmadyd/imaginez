@@ -1,10 +1,19 @@
 /**
+ * Opsi untuk captureFrame.
+ */
+export type CaptureOptions = {
+  /** Cerminkan hasil secara horizontal, mengikuti tampilan preview saat jepret ditekan */
+  mirror?: boolean;
+};
+
+/**
  * captureFrame – menangkap satu frame dari video, dipotong sesuai rasio target,
  * lalu dibatasi ukuran maksimum.
  *
  * @param video Elemen video yang sedang memutar stream kamera
  * @param targetAspect Rasio aspek target (width / height) yang diinginkan
  * @param maxSide Sisi terpanjang maksimum untuk hasil (default 1920)
+ * @param options Opsi tambahan (mis. `mirror` mengikuti tampilan preview)
  * @returns Promise<ImageBitmap> yang sudah terpotong sesuai rasio dan dibatasi ukuran
  *
  * Aturan:
@@ -52,7 +61,8 @@ async function ensureVideoReady(video: HTMLVideoElement, timeoutMs = 2500): Prom
 export async function captureFrame(
   video: HTMLVideoElement,
   targetAspect: number,
-  maxSide: number = 1920
+  maxSide: number = 1920,
+  options: CaptureOptions = {}
 ): Promise<ImageBitmap> {
   await ensureVideoReady(video);
 
@@ -86,11 +96,17 @@ export async function captureFrame(
   }
 
   // Gambar area video yang dipotong ke canvas
+  cropCtx.save();
+  if (options.mirror) {
+    cropCtx.translate(cropWidth, 0);
+    cropCtx.scale(-1, 1);
+  }
   cropCtx.drawImage(
     video,
     cropX, cropY, cropWidth, cropHeight, // area sumber di video
     0, 0, cropWidth, cropHeight          // area tujuan di canvas
   );
+  cropCtx.restore();
 
   // Skala jika perlu untuk memenuhi maxSide
   const scale = Math.min(1, maxSide / Math.max(cropWidth, cropHeight));

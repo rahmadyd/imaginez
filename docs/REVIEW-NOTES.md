@@ -62,3 +62,17 @@ Catatan audit dan verifikasi visual untuk setiap layar dan komponen UI sesuai at
   - **konkret:** Lolos. Kamera benar-benar merekam dan menampilkan frame, bukan placeholder.
   - **state:** Lolos. Preview aktif, status kamera, dan galeri fallback tetap konsisten.
 - **Catatan atau perbaikan:** `tests/unit/camera.test.ts` menambah 4 tes (stream yang mount belakangan, `start()` paralel, stream telat datang, tidak ada stream lama yang hidup setelah ganti kamera); `tests/e2e/privacy.spec.ts` memastikan preview `srcObject` terpasang, tidak ter-pause, dan `readyState >= 2` begitu layar kamera terbuka.
+
+## Kamera - auto-mirror dan hasil jepretan mengikuti tampilan (2026-11-18)
+- **Konsep:** Selfie dan webcam tampil seperti cermin (seperti yang dilihat user), dan foto yang masuk ke strip terlihat persis sama dengan preview saat jepret ditekan.
+- **Perubahan:** `useCamera` mengekspos `mirrored` (sumber tunggal): kamera depan HP dan webcam PC otomatis cermin, kamera belakang HP otomatis tidak, desktop memakai toggle "Cermin preview" (default aktif). `captureFrame` menerima opsi `{ mirror }` dan mencerminkan frame secara horizontal; `CaptureScreen` mengunci nilai mirror saat tombol jepret ditekan lalu meneruskannya ke `onCapture`.
+- **Lolos:** swap / squint / palette / font / copy / ritme / konkret / state
+  - **swap:** Lolos. Tidak ada elemen UI baru; perilaku preview yang jadi apa adanya.
+  - **squint:** Lolos. Preview tetap menjadi fokus; tidak ada kontrol tambahan yang memenuhi layar.
+  - **palette:** Lolos. Tidak ada warna/komponen baru.
+  - **font:** Lolos. Tidak ada perubahan tipografi.
+  - **copy:** Lolos. Copy lama ("Cermin preview") dipakai apa adanya.
+  - **ritme:** Lolos. Layout viewfinder tidak berubah.
+  - **konkret:** Lolos. Hasil jepretan identik dengan yang tampil di layar, bukan-behavior berbeda.
+  - **state:** Lolos. Preview, hasil strip, dan tombol toggle selalu sinkron.
+- **Catatan atau perbaikan:** `tests/unit/camera.test.ts` (3 tes aturan mirror), `tests/unit/capture.test.ts` (2 tes flip canvas), `tests/e2e/camera.spec.ts` (2 tes: mirror otomatis webcam + toggle manual, keduanya membuktikan canvas capture memakai `scale(-1, 1)` saat preview cermin dan tidak saat preview normal).

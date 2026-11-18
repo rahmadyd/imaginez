@@ -69,7 +69,7 @@ Landing → Pilih template → Izin kamera → Capture (N foto) → Review → U
 | FR-U8 | Jika kamera tidak tersedia/ditolak, tawarkan pilih foto dari galeri (file dibaca lokal, tidak diunggah). |
 | FR-U9 | Hapus sesi saat: tombol "Selesai", idle timeout (default 3 menit), `pagehide`. |
 | FR-U10 | Ada penjelasan privasi singkat yang bisa dibuka dari layar mana pun. |
-| FR-U13 | Pemilihan kamera: di perangkat mobile/tablet (deteksi pointer coarse + maxTouchPoints > 0) default kamera **depan** dengan tombol beralih ke **belakang** dan sebaliknya; di desktop/laptop user dapat memilih kamera dari daftar (`videoinput`) termasuk webcam eksternal/virtual. Pemilihan/pengalihan dinonaktifkan saat countdown atau mengambil foto. Preview kamera depan dicerminkan; kamera belakang tidak dicerminkan. Hasil unduhan tidak dicerminkan (mengikuti ARCHITECTURE §7.1). Preferensi non-foto (mis. kamera terakhir/mode) boleh disimpan di `localStorage` dengan kunci yang tidak memuat data foto. |
+| FR-U13 | Pemilihan kamera: di perangkat mobile/tablet (deteksi pointer coarse + maxTouchPoints > 0) default kamera **depan** dengan tombol beralih ke **belakang** dan sebaliknya; di desktop/laptop user dapat memilih kamera dari daftar (`videoinput`) termasuk webcam eksternal/virtual. Pemilihan/pengalihan dinonaktifkan saat countdown atau mengambil foto. Preview kamera depan (selfie HP) dan webcam PC dicerminkan otomatis; kamera belakang HP tidak dicerminkan; desktop punya toggle "Cermin preview" (default aktif). Hasil jepretan mengikuti kondisi mirror yang tampil di layar saat tombol jepret ditekan (preview cermin → hasil cermin). Preferensi non-foto (mis. kamera terakhir/mode) boleh disimpan di `localStorage` dengan kunci yang tidak memuat data foto. |
 
 ### Admin
 | ID | Requirement |
@@ -105,6 +105,6 @@ Landing → Pilih template → Izin kamera → Capture (N foto) → Review → U
 Agent **jangan menebak**. Jika menemui salah satu hal ini, berhenti dan tanyakan.
 
 1. Ukuran/rasio template standar apa yang akan admin pakai? (default sementara: 1200×3600 untuk strip 1×6, 1200×1800 untuk 2×3)
-2. Apakah hasil unduhan perlu opsi mirror? (default: tidak dimirror)
+2. ~~Apakah hasil unduhan perlu opsi mirror?~~ **Terjawab (2026-11-18):** hasil jepretan mengikuti kondisi mirror preview saat tombol jepret ditekan; tidak ada opsi terpisah.
 3. Apakah perlu watermark atau teks tanggal di hasil? (default: tidak)
 4. Domain dan nama produk final.

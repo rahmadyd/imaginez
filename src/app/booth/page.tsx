@@ -166,12 +166,12 @@ export default function BoothPage() {
         photos={session.state.photos}
         activeSlot={session.state.activeSlot}
         camera={camera}
-        onCapture={async (slot) => {
+        onCapture={async (slot, mirror) => {
           const video = camera.videoRef.current
           if (!video) return;
           const slotDef = session.state.template!.slots[slot];
           const aspect = slotDef.w / slotDef.h;
-          const bmp = await captureFrame(video, aspect, 1920);
+          const bmp = await captureFrame(video, aspect, 1920, { mirror });
           session.capturePhoto(slot, bmp);
         }}
         onCaptureFile={async (slot, file) => {
@@ -321,7 +321,7 @@ type CameraApi = ReturnType<typeof useCamera>;
 function CaptureScreen({ template, photos, activeSlot, camera, onCapture, onCaptureFile, onComplete, onCancel }: {
   template: ClientTemplate; photos: (ImageBitmap | null)[]; activeSlot: number;
   camera: CameraApi;
-  onCapture: (slot: number) => Promise<void>;
+  onCapture: (slot: number, mirror: boolean) => Promise<void>;
   onCaptureFile: (slot: number, file: File) => Promise<void>;
   onComplete: () => void; onCancel: () => void;
 }) {
@@ -386,6 +386,7 @@ function CaptureScreen({ template, photos, activeSlot, camera, onCapture, onCapt
 
   const take = async (idx: number) => {
     if (camera.status !== "active" || !camera.videoRef.current) return;
+    const mirrorAtShot = camera.mirrored;
     setBusy(true);
     try {
       ensureAudio();
@@ -403,7 +404,7 @@ function CaptureScreen({ template, photos, activeSlot, camera, onCapture, onCapt
         try { navigator.vibrate(15); } catch { /* ignore */ }
       }
       try {
-        await onCapture(idx);
+        await onCapture(idx, mirrorAtShot);
       } catch {
         // capture failed (e.g. video not ready); allow retry
       }
@@ -462,7 +463,7 @@ function CaptureScreen({ template, photos, activeSlot, camera, onCapture, onCapt
   const cameraError = camera.error;
   const nextIdx = photos.findIndex(p => p === null);
   const canSwitch = !busy && cameraStatus === "active";
-  const mirrored = cameraMode === "mobile" ? cameraFacing === "user" : cameraPreviewMirrored;
+  const mirrored = camera.mirrored;
   const showFlip = cameraMode === "mobile" && cameraDevices.length > 1;
   const showPickerBtn = cameraMode === "desktop";
 

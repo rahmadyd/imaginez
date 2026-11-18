@@ -166,11 +166,11 @@ Legenda: **AC** = acceptance criteria.
   **AC:** unit test mode, label kosong, dan devicechange lulus.
 
 - [ ] **T10.2 Mobile: depan / belakang**
-  Constraint `facingMode`: coba `{ exact }` dulu, jika `OverconstrainedError` ulangi `{ ideal }`. Tanpa daftar lensa (wide/ultra/tele). Preview depan dicerminkan (`scaleX(-1)`), belakang tidak; hasil capture tidak dimirror (ARCHITECTURE §7.1). Pindah kamera: hentikan semua track lama (`track.stop()`) dulu, baru buka baru; tampilkan keadaan "memuat" singkat.
+  Constraint `facingMode`: coba `{ exact }` dulu, jika `OverconstrainedError` ulangi `{ ideal }`. Tanpa daftar lensa (wide/ultra/tele). Preview depan dicerminkan (`scaleX(-1)`), belakang tidak; hasil capture mengikuti kondisi mirror preview saat jepret ditekan (ARCHITECTURE §7.1). Pindah kamera: hentikan semua track lama (`track.stop()`) dulu, baru buka baru; tampilkan keadaan "memuat" singkat.
   **AC:** pindah depan↔belakang melepas track lama (test). Preview cermin hanya kamera depan.
 
 - [ ] **T10.3 Desktop: pemilih kamera**
-  Kontrol "Kamera" di Capture membuka menu/dialog daftar kamera dengan penanda aktif. Pemilihan `deviceId: { exact: id }`. Toggle "Cermin preview" (default aktif), tidak memengaruhi hasil unduhan. Pilihan terakhir boleh disimpan di `localStorage` (`pb:camera`, hanya mode/facing/deviceId, tanpa data foto); jika `deviceId` tak ada, abaikan.
+  Kontrol "Kamera" di Capture membuka menu/dialog daftar kamera dengan penanda aktif. Pemilihan `deviceId: { exact: id }`. Toggle "Cermin preview" (default aktif), berlaku pada preview dan hasil jepretan. Pilihan terakhir boleh disimpan di `localStorage` (`pb:camera`, hanya mode/facing/deviceId/mirror, tanpa data foto); jika `deviceId` tak ada, abaikan.
   **AC:** memilih kamera lain mengganti stream dan menghentikan stream lama.
 
 - [ ] **T10.4 Aturan umum**
