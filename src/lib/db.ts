@@ -11,6 +11,11 @@ type Row = Record<string, unknown>;
 let supabase: SupabaseClient | null = null;
 let authClient: SupabaseClient | null = null;
 
+export type ColumnInfo = { type?: string; format?: string };
+export type ColumnSchema = Record<string, ColumnInfo>;
+
+let columnSchemaPromise: Promise<ColumnSchema | null> | null = null;
+
 function getApiKey(): string | undefined {
   return process.env.SUPABASE_SECRET_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY;
 }
@@ -53,6 +58,42 @@ export function getAuthClient(): SupabaseClient {
 
 export function getBucket(): string {
   return process.env.SUPABASE_STORAGE_BUCKET || "templates";
+}
+
+async function fetchTemplateColumnSchema(): Promise<ColumnSchema | null> {
+  const url = process.env.SUPABASE_URL;
+  const key = getApiKey();
+  if (!url || !key) return null;
+  try {
+    const res = await fetch(`${url}/rest/v1/`, {
+      headers: {
+        apikey: key,
+        Authorization: `Bearer ${key}`,
+        Accept: "application/openapi+json",
+      },
+    });
+    if (!res.ok) return null;
+    const spec = (await res.json()) as {
+      definitions?: Record<string, { properties?: Record<string, ColumnInfo> }>;
+    };
+    const properties = spec.definitions?.templates?.properties;
+    if (!properties) return null;
+    const schema: ColumnSchema = {};
+    for (const [name, info] of Object.entries(properties)) schema[name] = info;
+    return schema;
+  } catch {
+    return null;
+  }
+}
+
+export async function getTemplateColumnSchema(): Promise<ColumnSchema> {
+  if (!columnSchemaPromise) columnSchemaPromise = fetchTemplateColumnSchema();
+  const schema = await columnSchemaPromise;
+  if (!schema) {
+    columnSchemaPromise = null;
+    return {};
+  }
+  return schema;
 }
 
 async function ensureData() {

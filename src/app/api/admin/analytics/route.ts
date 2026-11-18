@@ -1,8 +1,12 @@
 ﻿import { NextRequest, NextResponse } from "next/server";
 import { isAdminRequest } from "@/lib/auth";
-import { getSupabase, isSupabaseConfigured } from "@/lib/db";
+import { getSupabase, getTemplateColumnSchema, isSupabaseConfigured } from "@/lib/db";
 import type { ActivityItem, DashboardAnalytics, DateRangeKey, LocationStat, TemplatePerformance, TrendPoint } from "@/features/admin/analytics";
 import { getFallbackAnalytics } from "@/features/admin/analytics";
+
+function toBool(value: unknown): boolean {
+  return value === true || value === 1;
+}
 
 function parseRange(v: string | null): DateRangeKey {
   return v === "today" || v === "30d" ? v : "7d";
@@ -74,16 +78,21 @@ export async function GET(req: NextRequest) {
 
   try {
     const supabase = getSupabase();
+    const schema = await getTemplateColumnSchema();
+    const known = Object.keys(schema).length > 0;
+    const templateColumns = ["id", "name", "published", "is_active", "usage_count", "sort"]
+      .filter((column) => !known || column in schema)
+      .join(",");
     const since = sinceForRange(range).toISOString();
-    const [{ data: events, error: evErr }, { data: templates, error: tplErr }] = await Promise.all([
+    const [{ data: events, error: evErr }, { data: templatesRaw, error: tplErr }] = await Promise.all([
       supabase.from("booth_events").select("event_type,template_id,filter_used,export_method,session_code,location,created_at").gte("created_at", since),
-      supabase.from("templates").select("id,name,published,is_active,usage_count,sort").order("sort", { ascending: true }),
+      supabase.from("templates").select(templateColumns).order("sort", { ascending: true }),
     ]);
     if (evErr) throw evErr;
     if (tplErr) throw tplErr;
 
     const evs = events ?? [];
-    const tpls = templates ?? [];
+    const tpls = ((templatesRaw ?? []) as unknown) as Array<Record<string, unknown>>;
     const pageViews = evs.filter((e) => e.event_type === "page_view");
     const sessions = evs.filter((e) => e.event_type === "session_completed");
     const downloads = evs.filter((e) => e.event_type === "photo_downloaded");
@@ -112,13 +121,15 @@ export async function GET(req: NextRequest) {
     const templateRows = tpls.map((t) => {
       const id = t.id as string;
       const usageCount = Number(t.usage_count ?? 0) || usageFromEvents.get(id) || 0;
+      const published = toBool(t.published);
+      const isActive = toBool(t.is_active) || (t.is_active == null && published);
       return {
         id,
         name: (t.name as string) ?? "Template",
         overlayUrl: `/api/templates/${id}/overlay`,
         usageCount,
-        published: t.published === true,
-        isActive: t.is_active === true || (t.is_active == null && t.published === true),
+        published,
+        isActive,
       };
     });
     const usageSum = templateRows.reduce((a, b) => a + b.usageCount, 0) || 0;

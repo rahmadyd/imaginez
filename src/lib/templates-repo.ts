@@ -1,5 +1,5 @@
 ﻿import type { AdminTemplate, ClientTemplate, Slot } from "@/features/templates/schema";
-import { getBucket, getSupabase, isSupabaseConfigured, readLocalRows, writeLocalRows, putLocalOverlay, getLocalOverlay, deleteLocalOverlay } from "./db";
+import { getBucket, getSupabase, getTemplateColumnSchema, isSupabaseConfigured, readLocalRows, writeLocalRows, putLocalOverlay, getLocalOverlay, deleteLocalOverlay, type ColumnInfo, type ColumnSchema } from "./db";
 
 type LocalRow = Record<string, unknown>;
 
@@ -63,6 +63,58 @@ function adminToRow(t: AdminTemplate) {
   };
 }
 
+function isIntegerColumn(info: ColumnInfo | undefined): boolean {
+  return info?.type === "integer" || info?.type === "number";
+}
+
+function isJsonColumn(info: ColumnInfo | undefined): boolean {
+  return info?.type === "jsonb" || info?.type === "json" || info?.format === "json";
+}
+
+export function buildTemplateRow(t: AdminTemplate, schema: ColumnSchema): Record<string, unknown> {
+  const row: Record<string, unknown> = adminToRow(t);
+  const known = Object.keys(schema).length > 0;
+  if (!known) {
+    row.slots_json = JSON.stringify(t.slots);
+    return row;
+  }
+  for (const key of Object.keys(row)) {
+    if (!(key in schema)) delete row[key];
+  }
+  if (!isJsonColumn(schema.slots_json)) row.slots_json = JSON.stringify(t.slots);
+  if (isIntegerColumn(schema.published)) row.published = t.published ? 1 : 0;
+  if (isIntegerColumn(schema.is_active)) row.is_active = t.isActive ? 1 : 0;
+  return row;
+}
+
+export function adaptRowFromError(
+  row: Record<string, unknown>,
+  error: { code?: string; message?: string }
+): Record<string, unknown> | null {
+  const message = error.message || "";
+  const next = { ...row };
+  const missing = message.match(/Could not find the '([^']+)' column/);
+  if (missing && missing[1] in next) {
+    delete next[missing[1]];
+    return next;
+  }
+  if (error.code === "22P02" || error.code === "42804") {
+    if ("published" in next && typeof next.published === "boolean") {
+      next.published = next.published ? 1 : 0;
+      return next;
+    }
+    if ("is_active" in next && typeof next.is_active === "boolean") {
+      next.is_active = next.is_active ? 1 : 0;
+      return next;
+    }
+    if ("slots_json" in next && typeof next.slots_json !== "string") {
+      next.slots_json = JSON.stringify(next.slots_json);
+      return next;
+    }
+  }
+  return null;
+}
+
 export function toClient(t: AdminTemplate): ClientTemplate {
   const { overlayKey: _overlayKey, ...rest } = t;
   void _overlayKey;
@@ -77,10 +129,14 @@ function isRowActive(r: TemplateRow): boolean {
 
 export async function listPublishedTemplates(): Promise<ClientTemplate[]> {
   if (isSupabaseConfigured()) {
+    const schema = await getTemplateColumnSchema();
+    const known = Object.keys(schema).length > 0;
+    const column = known && !schema.is_active ? "published" : "is_active";
+    const value = isIntegerColumn(schema[column]) ? 1 : true;
     const { data, error } = await getSupabase()
       .from("templates")
       .select("*")
-      .eq("is_active", true)
+      .eq(column, value)
       .order("sort", { ascending: true });
     if (error) throw error;
     return (data as TemplateRow[]).map(rowToAdmin).map(toClient);
@@ -116,9 +172,18 @@ export async function getTemplate(id: string): Promise<AdminTemplate | null> {
 
 export async function createTemplate(t: AdminTemplate): Promise<void> {
   if (isSupabaseConfigured()) {
-    const { error } = await getSupabase().from("templates").insert(adminToRow(t));
-    if (error) throw error;
-    return;
+    const schema = await getTemplateColumnSchema();
+    let row = buildTemplateRow(t, schema);
+    let lastMessage = "Gagal menyimpan template ke database.";
+    for (let attempt = 0; attempt < 4; attempt++) {
+      const { error } = await getSupabase().from("templates").insert(row);
+      if (!error) return;
+      lastMessage = error.message || lastMessage;
+      const adapted = adaptRowFromError(row, error);
+      if (!adapted) break;
+      row = adapted;
+    }
+    throw new Error(lastMessage);
   }
   const rows = await readLocalRows();
   rows.push(adminToRow(t) as LocalRow);
@@ -130,12 +195,21 @@ export async function updateTemplate(id: string, patch: Partial<Omit<AdminTempla
   if (!current) throw new Error("Template tidak ditemukan");
   const next: AdminTemplate = { ...current, ...patch, id, createdAt: current.createdAt, updatedAt: new Date().toISOString() };
   if (isSupabaseConfigured()) {
-    const row = adminToRow(next);
-    const { id: _id, created_at: _ca, ...rest } = row;
+    const schema = await getTemplateColumnSchema();
+    const full = buildTemplateRow(next, schema);
+    const { id: _id, created_at: _ca, ...rest } = full;
     void _id; void _ca;
-    const { error } = await getSupabase().from("templates").update(rest).eq("id", id);
-    if (error) throw error;
-    return;
+    let row = rest;
+    let lastMessage = "Gagal memperbarui template di database.";
+    for (let attempt = 0; attempt < 4; attempt++) {
+      const { error } = await getSupabase().from("templates").update(row).eq("id", id);
+      if (!error) return;
+      lastMessage = error.message || lastMessage;
+      const adapted = adaptRowFromError(row, error);
+      if (!adapted) break;
+      row = adapted;
+    }
+    throw new Error(lastMessage);
   }
   const rows = await readLocalRows();
   const idx = rows.findIndex((r) => r.id === id);

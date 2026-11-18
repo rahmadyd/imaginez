@@ -1,5 +1,5 @@
 ﻿import { NextRequest, NextResponse } from "next/server";
-import { listAllTemplates, createTemplate, putOverlay } from "@/lib/templates-repo";
+import { listAllTemplates, createTemplate, putOverlay, deleteOverlay } from "@/lib/templates-repo";
 import { validatePngBuffer } from "@/lib/png";
 import { isAdminRequest } from "@/lib/auth";
 import { z } from "zod";
@@ -57,24 +57,30 @@ export async function POST(req: NextRequest) {
 
   const id = crypto.randomUUID();
   const overlayKey = `${id}.png`;
-  await putOverlay(overlayKey, buf);
+  try {
+    await putOverlay(overlayKey, buf);
 
-  const now = new Date().toISOString();
-  const all = await listAllTemplates();
-  await createTemplate({
-    id,
-    name: meta.name,
-    canvas: valid.width && valid.height ? { w: valid.width, h: valid.height } : meta.canvas,
-    slots: meta.slots,
-    overlayKey,
-    bleed: meta.bleed ?? 0,
-    background: meta.background,
-    published: meta.published ?? false,
-    isActive: meta.isActive ?? meta.published ?? false,
-    usageCount: 0,
-    sort: all.length,
-    createdAt: now,
-    updatedAt: now,
-  });
+    const now = new Date().toISOString();
+    const all = await listAllTemplates();
+    await createTemplate({
+      id,
+      name: meta.name,
+      canvas: valid.width && valid.height ? { w: valid.width, h: valid.height } : meta.canvas,
+      slots: meta.slots,
+      overlayKey,
+      bleed: meta.bleed ?? 0,
+      background: meta.background,
+      published: meta.published ?? false,
+      isActive: meta.isActive ?? meta.published ?? false,
+      usageCount: 0,
+      sort: all.length,
+      createdAt: now,
+      updatedAt: now,
+    });
+  } catch (e) {
+    try { await deleteOverlay(overlayKey); } catch { /* ignore */ }
+    const detail = e instanceof Error ? e.message : String(e);
+    return NextResponse.json({ error: "Gagal menyimpan template.", detail }, { status: 500 });
+  }
   return NextResponse.json({ id, ok: true }, { status: 201 });
 }
