@@ -92,15 +92,16 @@ Catatan audit dan verifikasi visual untuk setiap layar dan komponen UI sesuai at
 - **Catatan atau perbaikan:** `tests/unit/capture.test.ts` menambah 5 tes `coverCropRect` (landscape/portrait, target landscape/portrait, rasio dan titik tengah); `tests/e2e/camera.spec.ts` membuktikan rasio preview = rasio slot template dan crop canvas identik dengan area yang terlihat (HP 390 px & PC 1280 px, slot portrait 500x800 diuji manual dengan viewfinder 268x429 tanpa tombol terpotong, 2026-11-18).
 
 ## Galeri - isi slot tanpa menyalakan kamera (2026-11-19)
-- **Konsep:** User yang tidak mau memakai kamera tetap bisa punya strip: foto dari galeri masuk ke slot satu per satu di layar ''Fill the Frames'', dan kamera tetap gelap sampai user sendiri yang menekan ''Use the camera instead''.
-- **Perubahan:** State machine sesi punya fase baru ''filling'' dengan mode ''gallery'' (''START_GALLERY''). Layar izin membuka pemilih file asli (bukan tombol palsu), file dibaca lokal menjadi ImageBitmap lalu langsung masuk ke slot kosong berikutnya. Layar ''Fill the Frames'' menampilkan strip yang terisi bertahap, progres ''N of M frames filled'', tombol tambah foto, tombol alih ke kamera, dan ''Leave the Stage''. Retake pada hasil galeri kembali ke layar pengisian slot.
+- **Konsep:** User yang tidak mau memakai kamera tetap bisa punya strip: foto dari galeri masuk ke slot satu per satu di layar "Fill the Frames", dan kamera tetap gelap sampai user sendiri yang menekan "Use the camera instead".
+- **Perubahan:** State machine sesi punya fase baru `filling` dengan mode `gallery` (`START_GALLERY`). Layar izin membuka pemilih file asli (bukan tombol palsu), file dibaca lokal menjadi `ImageBitmap` lalu langsung masuk ke slot kosong berikutnya. Layar "Fill the Frames" menampilkan strip yang terisi bertahap, progres "N of M frames filled", tombol tambah foto, tombol alih ke kamera, dan "Leave the Stage". Retake pada hasil galeri kembali ke layar pengisian slot.
 - **Lolos:** swap / squint / palette / font / copy / ritme / konkret / state
   - **swap:** Lolos. Layar baru memakai komponen panggung yang sudah ada (bingkai, filigree, MarqueeStrip, tipografi display/body/mono).
   - **squint:** Lolos. Fokus ke strip yang sedang terisi; progres hanya satu baris di bawah bingkai.
   - **palette:** Lolos. Tidak ada warna/komponen baru, hanya token yang sudah dipakai.
   - **font:** Lolos. Tidak ada perubahan tipografi.
-  - **copy:** Lolos. Teks baru dikumpulkan di copy.s3g (''Fill the Frames'', ''N of M frames filled'', ''Add portrait from gallery'', ''Use the camera instead'', ''Leave the Stage'').
+  - **copy:** Lolos. Teks baru dikumpulkan di `copy.s3g` ("Fill the Frames", "N of M frames filled", "Add portrait from gallery", "Use the camera instead", "Leave the Stage").
   - **ritme:** Lolos. Jarak mengikuti pola layar izin dan review (bingkai luar, isi, baris bawah).
   - **konkret:** Lolos. Foto asli user masuk strip sesuai slot, bukan placeholder.
-  - **state:** Lolos. Fase ''filling'' punya state sibuk (reading/error), progres terisi, dan jalur retake kembali ke pengisian.
-- **Catatan atau perbaikan:** 	ests/unit/session-machine.test.ts menambah 5 tes (transisi galeri, retake ke ''filling'', alih ke kamera, transisi ilegal); 	ests/e2e/gallery.spec.ts membuktikan alur galeri sampai review dengan **0 panggilan getUserMedia** (2026-11-19).
+  - **state:** Lolos. Fase `filling` punya state sibuk (reading/error), progres terisi, dan jalur retake kembali ke pengisian.
+- **Catatan atau perbaikan:** `tests/unit/session-machine.test.ts` menambah 5 tes (transisi galeri, retake ke `filling`, alih ke kamera, transisi ilegal); `tests/e2e/gallery.spec.ts` membuktikan alur galeri sampai review dengan **0 panggilan `getUserMedia`** (2026-11-19).
+  - **Verifikasi produksi (2026-11-19, versi `3f508087`):** alur galeri pada template 8 slot di `https://imaginez.rahmadhidayad100.workers.dev` — progres "1 of 8 frames filled", 0 panggilan `getUserMedia` sebelum dan sesudah review, screenshot `docs/screenshots/t39-gallery-fill-mobile-390px.png` dan `docs/screenshots/t39-gallery-review-mobile-390px.png`.
