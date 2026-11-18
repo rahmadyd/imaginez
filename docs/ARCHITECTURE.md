@@ -190,7 +190,9 @@ Ekspor: `exportBlob(canvas, "png" | "jpeg", quality = 0.92)`.
 Preview di layar boleh memakai `scale` < 1. Unduhan selalu `scale = 1`.
 
 ### 7.4 Sesi dan wipe (`features/session`)
-State machine eksplisit: `idle → choosing → permission → capturing → reviewing → done`.
+State machine eksplisit: `idle → choosing → permission → capturing → reviewing → done`, dengan cabang **`permission → filling → reviewing`** untuk alur galeri.
+
+Fase `filling` (mode `"gallery"`): user memilih file gambar lokal; file dibaca menjadi `ImageBitmap` (tanpa `upload`, tanpa request jaringan) dan langsung masuk ke slot berikutnya yang kosong. Layar pengisian menampilkan progres "N of M frames filled" dan tombol eksplisit untuk beralih ke kamera (`START_CAPTURE` → mode `"camera"`,-filled slot tetap dipakai). Kamera **tidak** dinyalakan selama fase `filling`; `getUserMedia` hanya dipanggil dari layar capture. Setelah semua slot terisi, state machine otomatis pindah ke `reviewing`. Retake pada hasil galeri (`RETAKE_SLOT`/`RETAKE_ALL`) kembali ke fase `filling` dengan slot kosong, bukan ke `capturing`.
 
 `wipe()` harus:
 1. Menutup semua `ImageBitmap` (`bitmap.close()`).

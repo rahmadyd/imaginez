@@ -95,6 +95,7 @@ export function useSession() {
   );
   const grantPermission = useCallback(() => baseDispatch({ type: "GRANT_PERMISSION" }), []);
   const startCapture = useCallback(() => baseDispatch({ type: "START_CAPTURE" }), []);
+  const startGallery = useCallback(() => baseDispatch({ type: "START_GALLERY" }), []);
   const capturePhoto = useCallback(
     (slot: number, photo: ImageBitmap) => baseDispatch({ type: "CAPTURE_PHOTO", slot, photo }),
     []
@@ -131,6 +132,7 @@ export function useSession() {
     selectTemplate,
     grantPermission,
     startCapture,
+    startGallery,
     capturePhoto,
     captureComplete,
     retakeSlot,

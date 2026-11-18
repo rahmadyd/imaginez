@@ -51,7 +51,8 @@ Aplikasi web photobooth. **Admin** membuat dan mengunggah template photo strip (
 
 ```
 Landing → Pilih template → Izin kamera → Capture (N foto) → Review → Unduh → Selesai (hapus) → Landing
-                                   ↘ (ditolak) → Pakai foto dari galeri ↗
+                                   ↘ (ditolak / pilihan user) → Isi slot dari galeri → Review ↗
+                                                   ↘ (alih ke kamera) → Capture (N foto) ↗
 ```
 
 ## 7. Requirement fungsional
@@ -66,7 +67,7 @@ Landing → Pilih template → Izin kamera → Capture (N foto) → Review → U
 | FR-U5 | Preview kamera dipotong sesuai rasio slot yang sedang diisi, supaya apa yang terlihat = apa yang masuk strip. |
 | FR-U6 | Review menampilkan strip hasil penuh. User bisa mengulang satu slot atau semua slot. |
 | FR-U7 | Unduh PNG pada resolusi penuh template. Pakai Web Share jika tersedia (penting untuk iOS). |
-| FR-U8 | Jika kamera tidak tersedia/ditolak, tawarkan pilih foto dari galeri (file dibaca lokal, tidak diunggah). |
+| FR-U8 | Jika kamera tidak tersedia/ditolak **atau user memilih sendiri**, tawarkan pilih foto dari galeri (file dibaca lokal, tidak diunggah). Alur galeri punya layar pengisian slot: user menambah foto satu per satu sampai semua slot terisi, tanpa kamera dinyalakan sama sekali; boleh beralih ke kamera kapan saja lewat tombol eksplisit, dan retake pada hasil galeri kembali ke layar pengisian slot. |
 | FR-U9 | Hapus sesi saat: tombol "Selesai", idle timeout (default 3 menit), `pagehide`. |
 | FR-U10 | Ada penjelasan privasi singkat yang bisa dibuka dari layar mana pun. |
 | FR-U13 | Pemilihan kamera: di perangkat mobile/tablet (deteksi pointer coarse + maxTouchPoints > 0) default kamera **depan** dengan tombol beralih ke **belakang** dan sebaliknya; di desktop/laptop user dapat memilih kamera dari daftar (`videoinput`) termasuk webcam eksternal/virtual. Pemilihan/pengalihan dinonaktifkan saat countdown atau mengambil foto. Preview kamera depan (selfie HP) dan webcam PC dicerminkan otomatis; kamera belakang HP tidak dicerminkan; desktop punya toggle "Cermin preview" (default aktif). Hasil jepretan mengikuti kondisi mirror yang tampil di layar saat tombol jepret ditekan (preview cermin → hasil cermin). Preferensi non-foto (mis. kamera terakhir/mode) boleh disimpan di `localStorage` dengan kunci yang tidak memuat data foto. |

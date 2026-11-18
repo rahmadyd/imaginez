@@ -1,20 +1,24 @@
 ﻿"use client";
 
+import { useRef } from "react";
 import { copy } from "@/lib/copy";
 import { Button } from "./Button";
 import { Sunburst, GrainOverlay, TheatreDivider, FiligreeCorners } from "@/components/ornaments/TheatreOrnaments";
 
 type Props = {
   onAllow: () => void;
-  onGallery: () => void;
+  onGalleryFiles: (files: File[]) => void;
   error: string | null;
   onRetry: () => void;
   hint?: string | null;
   altActionLabel?: string | null;
   onAltAction?: () => void;
+  galleryError?: string | null;
 };
 
-export function PermissionScreen({ onAllow, onGallery, error, onRetry, hint, altActionLabel, onAltAction }: Props) {
+export function PermissionScreen({ onAllow, onGalleryFiles, error, onRetry, hint, altActionLabel, onAltAction, galleryError }: Props) {
+  const fileRef = useRef<HTMLInputElement | null>(null);
+
   return (
     <div className="min-h-[100dvh] bg-paper text-ink flex flex-col items-center justify-center p-6 relative overflow-hidden">
       <Sunburst className="opacity-60" />
@@ -53,7 +57,26 @@ export function PermissionScreen({ onAllow, onGallery, error, onRetry, hint, alt
             ) : (
               <Button onClick={onAllow}>{copy.s2.allow}</Button>
             )}
-            <button onClick={onGallery} className="font-body text-xs uppercase tracking-[0.16em] underline underline-offset-4 py-2 text-ink-2 hover:text-ink">{copy.s2.gallery}</button>
+            <button
+              onClick={() => fileRef.current?.click()}
+              className="font-body text-xs uppercase tracking-[0.16em] underline underline-offset-4 py-2 text-ink-2 hover:text-ink"
+            >
+              {copy.s2.gallery}
+            </button>
+            {galleryError && <p className="font-mono text-xs text-gold">{galleryError}</p>}
+            <input
+              ref={fileRef}
+              type="file"
+              accept="image/*"
+              multiple
+              className="hidden"
+              aria-label={copy.s2.gallery}
+              onChange={(e) => {
+                const files = e.target.files ? Array.from(e.target.files) : [];
+                e.target.value = "";
+                if (files.length) onGalleryFiles(files);
+              }}
+            />
           </div>
         </div>
       </div>

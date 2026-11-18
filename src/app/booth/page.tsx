@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import { copy } from "@/lib/copy";
 import { Button } from "@/components/Button";
@@ -37,6 +37,8 @@ export default function BoothPage() {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [hintDismissed, setHintDismissed] = useState(false);
   const [sessionCode, setSessionCode] = useState(() => createSessionCode());
+  const [galleryError, setGalleryError] = useState<string | null>(null);
+  const [galleryBusy, setGalleryBusy] = useState(false);
   const sessionCompletedTrackedFor = useRef<string | null>(null);
 
   useEffect(() => {
@@ -92,8 +94,68 @@ export default function BoothPage() {
 
   const onAllowCamera = async () => {
     setHintDismissed(false);
+    setGalleryError(null);
     await camera.start();
   };
+
+  const readGalleryFile = async (file: File, slotIndex: number) => {
+    const template = session.state.template;
+    if (!template) return false;
+    const slotDef = template.slots[slotIndex];
+    if (!slotDef) return false;
+    const bmp = await readImageFile(file, slotDef.w / slotDef.h, 1920);
+    session.capturePhoto(slotIndex, bmp);
+    return true;
+  };
+
+  const startGallery = async (files: File[]) => {
+    const template = session.state.template;
+    if (!template) return;
+    const list = files.filter((f) => f.type.startsWith("image/"));
+    if (!list.length) {
+      setGalleryError(copy.s3g.failed);
+      return;
+    }
+    setGalleryBusy(true);
+    setGalleryError(null);
+    try {
+      session.startGallery();
+      for (let i = 0; i < list.length; i++) {
+        const ok = await readGalleryFile(list[i], i);
+        if (!ok) break;
+      }
+    } catch {
+      setGalleryError(copy.s3g.failed);
+    } finally {
+      setGalleryBusy(false);
+    }
+  };
+
+  const addGalleryFiles = async (files: File[]) => {
+    const photos = session.state.photos;
+    let slotIndex = photos.findIndex((p) => p === null);
+    if (slotIndex === -1) return;
+    setGalleryBusy(true);
+    setGalleryError(null);
+    try {
+      for (const file of files.filter((f) => f.type.startsWith("image/"))) {
+        if (slotIndex === -1) break;
+        const ok = await readGalleryFile(file, slotIndex);
+        if (!ok) break;
+        slotIndex += 1;
+      }
+    } catch {
+      setGalleryError(copy.s3g.failed);
+    } finally {
+      setGalleryBusy(false);
+    }
+  };
+
+  useEffect(() => {
+    if (session.state.phase === "filling" && session.state.photos.length > 0 && session.state.photos.every((p) => p !== null)) {
+      session.captureComplete();
+    }
+  }, [session.state.phase, session.state.photos, session]);
 
   useEffect(() => {
     if (session.state.phase === "permission" && camera.status === "active") {
@@ -145,10 +207,11 @@ export default function BoothPage() {
     screen = (
       <PermissionScreen
         onAllow={onAllowCamera}
-        onGallery={() => { session.startCapture(); }}
+        onGalleryFiles={(files) => { void startGallery(files); }}
         error={cameraErrorMsg(camera.error)}
         onRetry={onAllowCamera}
         hint={inAppHint}
+        galleryError={galleryError}
         altActionLabel={altLabel}
         onAltAction={altLabel ? async () => {
           if (camera.mode === "desktop") {
@@ -158,6 +221,18 @@ export default function BoothPage() {
             await camera.switchFacing();
           }
         } : undefined}
+      />
+    );
+  } else if (session.state.phase === "filling" && session.state.template) {
+    screen = (
+      <GalleryFillScreen
+        template={session.state.template}
+        photos={session.state.photos}
+        busy={galleryBusy}
+        error={galleryError}
+        onAddFiles={(files) => { void addGalleryFiles(files); }}
+        onUseCamera={() => { session.startCapture(); }}
+        onCancel={() => { session.finish(); router.push("/"); }}
       />
     );
   } else if (session.state.phase === "capturing" && session.state.template) {
@@ -617,27 +692,12 @@ function Corner({ pos }: { pos: "tl" | "tr" | "bl" | "br" }) {
   return <span className={`${base} ${cls}`} />;
 }
 
-function ReviewScreen({ template, photos, sessionCode, onRetakeSlot, onRetakeAll, onDone }: {
-  template: ClientTemplate; photos: ImageBitmap[]; sessionCode: string; onRetakeSlot: (s: number) => void; onRetakeAll: () => void; onDone: () => void;
+function StripPreview({ template, photos, onCanvas }: {
+  template: ClientTemplate; photos: (ImageBitmap | null)[]; onCanvas?: (canvas: HTMLCanvasElement | null) => void;
 }) {
   const [overlay, setOverlay] = useState<ImageBitmap | null>(null);
   const [baseLayer, setBaseLayer] = useState<ImageBitmap | null>(null);
   const [canvasEl, setCanvasEl] = useState<HTMLCanvasElement | null>(null);
-  const [serial] = useState(() => String(Math.floor(Math.random() * 9000) + 1000));
-  const [dateLabel] = useState(() => {
-    const d = new Date();
-    const dd = String(d.getDate()).padStart(2, "0");
-    const mm = String(d.getMonth() + 1).padStart(2, "0");
-    const yyyy = d.getFullYear();
-    return `${dd}/${mm}/${yyyy}`;
-  });
-  const [qrOpen, setQrOpen] = useState(false);
-  const [qrBusy, setQrBusy] = useState(false);
-  const [qrError, setQrError] = useState<string | null>(null);
-  const [qrUrl, setQrUrl] = useState<string | null>(null);
-  const [qrDataUrl, setQrDataUrl] = useState<string | null>(null);
-  const [qrExpiresAt, setQrExpiresAt] = useState<string | null>(null);
-  const canShare = typeof navigator !== "undefined" && typeof navigator.share === "function";
 
   useEffect(() => {
     let alive = true;
@@ -656,9 +716,94 @@ function ReviewScreen({ template, photos, sessionCode, onRetakeSlot, onRetakeAll
     if (!overlay) return;
     if (template.baseLayerKey && !baseLayer) return;
     const c = renderStrip(template, photos, overlay, { scale: 1, baseLayer });
-    const frame = requestAnimationFrame(() => setCanvasEl(c));
+    const frame = requestAnimationFrame(() => {
+      setCanvasEl(c);
+      onCanvas?.(c);
+    });
     return () => cancelAnimationFrame(frame);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [overlay, baseLayer, template, photos]);
+
+  if (!canvasEl || !overlay) {
+    return <div className="bg-paper animate-pulse border border-brass/20" style={{ aspectRatio: `${template.canvas.w} / ${template.canvas.h}` }} />;
+  }
+  return <Preview canvas={canvasEl} />;
+}
+
+function GalleryFillScreen({ template, photos, busy, error, onAddFiles, onUseCamera, onCancel }: {
+  template: ClientTemplate; photos: (ImageBitmap | null)[]; busy: boolean; error: string | null;
+  onAddFiles: (files: File[]) => void; onUseCamera: () => void; onCancel: () => void;
+}) {
+  const fileRef = useRef<HTMLInputElement | null>(null);
+  const filled = photos.filter((p) => p !== null).length;
+  const total = template.slots.length;
+
+  return (
+    <main className="min-h-[100dvh] bg-paper text-ink p-4 flex justify-center relative overflow-hidden">
+      <Sunburst className="opacity-60" />
+      <SpotlightBeams />
+      <GrainOverlay />
+      <div className="absolute inset-0 pointer-events-none" style={{ background: "radial-gradient(ellipse 50% 40% at 50% 30%, rgba(212,175,55,0.09) 0%, transparent 70%)" }} />
+      <div className="relative w-full max-w-[560px] flex flex-col gap-4">
+        <header className="text-center mb-1 flex flex-col items-center gap-2">
+          <RibbonBadge>Act II</RibbonBadge>
+          <h1 className="font-display text-xl text-gold tracking-wide">{copy.s3g.title}</h1>
+          <TheatreDivider className="max-w-[260px]" />
+          <p className="font-body text-xs text-ink-2">{copy.s3g.subtitle}</p>
+        </header>
+        <div className="relative border border-brass p-[2px] bg-paper-2/50">
+          <FiligreeCorners size={30} inset="inset-1" />
+          <div className="border border-brass/40 p-3 relative">
+            <StripPreview template={template} photos={photos} />
+            <div className="border-t border-dashed border-brass/50 mt-3 pt-2 flex justify-between font-body text-[10px] uppercase tracking-[0.18em] text-ink-2">
+              <span>{copy.brand}</span>
+              <span>{copy.s3g.progress(filled, total)}</span>
+            </div>
+          </div>
+        </div>
+        {busy && <p className="font-mono text-xs text-ink-2 text-center">{copy.s3g.reading}</p>}
+        {error && <p className="font-mono text-xs text-gold text-center">{error}</p>}
+        <Button onClick={() => fileRef.current?.click()} disabled={busy || filled >= total} className="w-full">{copy.s3g.add}</Button>
+        <Button variant="secondary" onClick={onUseCamera} disabled={busy} className="w-full">{copy.s3g.useCamera}</Button>
+        <button onClick={onCancel} disabled={busy} className="font-body text-xs uppercase tracking-[0.16em] underline underline-offset-4 py-2 text-ink-2 hover:text-ink disabled:opacity-50">{copy.s3g.cancel}</button>
+        <input
+          ref={fileRef}
+          type="file"
+          accept="image/*"
+          multiple
+          className="hidden"
+          aria-label={copy.s3g.add}
+          onChange={(e) => {
+            const files = e.target.files ? Array.from(e.target.files) : [];
+            e.target.value = "";
+            if (files.length) onAddFiles(files);
+          }}
+        />
+      </div>
+    </main>
+  );
+}
+
+function ReviewScreen({ template, photos, sessionCode, onRetakeSlot, onRetakeAll, onDone }: {
+  template: ClientTemplate; photos: ImageBitmap[]; sessionCode: string; onRetakeSlot: (s: number) => void; onRetakeAll: () => void; onDone: () => void;
+}) {
+  const [canvasEl, setCanvasEl] = useState<HTMLCanvasElement | null>(null);
+  const setPreviewCanvas = useCallback((c: HTMLCanvasElement | null) => setCanvasEl(c), []);
+  const [serial] = useState(() => String(Math.floor(Math.random() * 9000) + 1000));
+  const [dateLabel] = useState(() => {
+    const d = new Date();
+    const dd = String(d.getDate()).padStart(2, "0");
+    const mm = String(d.getMonth() + 1).padStart(2, "0");
+    const yyyy = d.getFullYear();
+    return `${dd}/${mm}/${yyyy}`;
+  });
+  const [qrOpen, setQrOpen] = useState(false);
+  const [qrBusy, setQrBusy] = useState(false);
+  const [qrError, setQrError] = useState<string | null>(null);
+  const [qrUrl, setQrUrl] = useState<string | null>(null);
+  const [qrDataUrl, setQrDataUrl] = useState<string | null>(null);
+  const [qrExpiresAt, setQrExpiresAt] = useState<string | null>(null);
+  const canShare = typeof navigator !== "undefined" && typeof navigator.share === "function";
 
   const trackDownloadEvent = (exportMethod: "png" | "jpg" | "share" | "qr") => {
     trackEvent({
@@ -735,12 +880,10 @@ function ReviewScreen({ template, photos, sessionCode, onRetakeSlot, onRetakeAll
                   <span>{dateLabel}</span>
                 </div>
                 <MarqueeStrip count={8} className="mb-2 px-1" />
-                {canvasEl && overlay ? (
-                  <Preview canvas={canvasEl} />
-                ) : <div className="aspect-[1/3] bg-paper animate-pulse border border-brass/20" />}
+                <StripPreview template={template} photos={photos} onCanvas={setPreviewCanvas} />
                 <div className="border-t border-dashed border-brass/50 mt-3 pt-2 flex justify-between font-body text-[10px] uppercase tracking-[0.18em] text-ink-2">
                   <span>{copy.brand}</span>
-                  <span>{template.slots.length} portraits</span>
+                  <span>{copy.s4.portraits(template.slots.length)}</span>
                 </div>
               </div>
             </div>

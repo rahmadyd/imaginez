@@ -47,7 +47,7 @@ function roundedRectPath(
  */
 export function renderStrip(
   template: Pick<Template, "canvas" | "slots" | "background"> & { bleed?: number; baseLayerKey?: string },
-  photos: ImageBitmap[],
+  photos: (ImageBitmap | null)[],
   overlay: ImageBitmap,
   options: RenderStripOptions = {}
 ): HTMLCanvasElement {

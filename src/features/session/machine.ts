@@ -5,8 +5,11 @@ export type SessionPhase =
   | "choosing"
   | "permission"
   | "capturing"
+  | "filling"
   | "reviewing"
   | "done";
+
+export type SessionMode = "camera" | "gallery";
 
 export type SessionState = {
   phase: SessionPhase;
@@ -14,6 +17,7 @@ export type SessionState = {
   photos: (ImageBitmap | null)[];
   activeSlot: number;
   error: string | null;
+  mode: SessionMode;
 };
 
 export const initialSessionState: SessionState = {
@@ -22,6 +26,7 @@ export const initialSessionState: SessionState = {
   photos: [],
   activeSlot: 0,
   error: null,
+  mode: "camera",
 };
 
 type Transition =
@@ -29,6 +34,7 @@ type Transition =
   | { type: "SELECT_TEMPLATE"; template: ClientTemplate }
   | { type: "GRANT_PERMISSION" }
   | { type: "START_CAPTURE" }
+  | { type: "START_GALLERY" }
   | { type: "CAPTURE_PHOTO"; slot: number; photo: ImageBitmap }
   | { type: "CAPTURE_COMPLETE" }
   | { type: "RETAKE_SLOT"; slot: number }
@@ -62,6 +68,7 @@ export function transition(state: SessionState, action: Transition): SessionStat
         template: action.template,
         photos: Array.from({ length: action.template.slots.length }, () => null),
         activeSlot: 0,
+        mode: "camera",
       };
 
     case "GRANT_PERMISSION":
@@ -70,14 +77,27 @@ export function transition(state: SessionState, action: Transition): SessionStat
       }
       return { ...state, phase: "permission", error: null };
 
-    case "START_CAPTURE":
-      if (state.phase !== "permission") {
+    case "START_CAPTURE": {
+      if (state.phase !== "permission" && state.phase !== "filling") {
         throw new Error(`Transisi ilegal: ${state.phase} -> capturing`);
       }
-      return { ...state, phase: "capturing", activeSlot: 0 };
+      const nextEmpty = state.photos.findIndex((p) => p === null);
+      return {
+        ...state,
+        phase: "capturing",
+        activeSlot: nextEmpty === -1 ? state.activeSlot : nextEmpty,
+        mode: "camera",
+      };
+    }
+
+    case "START_GALLERY":
+      if (state.phase !== "permission") {
+        throw new Error(`Transisi ilegal: ${state.phase} -> filling`);
+      }
+      return { ...state, phase: "filling", mode: "gallery", activeSlot: 0 };
 
     case "CAPTURE_PHOTO": {
-      if (state.phase !== "capturing") {
+      if (state.phase !== "capturing" && state.phase !== "filling") {
         throw new Error(`Transisi ilegal: ${state.phase} -> capture photo`);
       }
       const count = slotsCount(state);
@@ -90,7 +110,7 @@ export function transition(state: SessionState, action: Transition): SessionStat
     }
 
     case "CAPTURE_COMPLETE": {
-      if (state.phase !== "capturing") {
+      if (state.phase !== "capturing" && state.phase !== "filling") {
         throw new Error(`Transisi ilegal: ${state.phase} -> reviewing`);
       }
       const allFilled = state.photos.length > 0 && state.photos.every((p) => p !== null);
@@ -109,7 +129,7 @@ export function transition(state: SessionState, action: Transition): SessionStat
       }
       const photos = [...state.photos];
       photos[action.slot] = null;
-      return { ...state, phase: "capturing", activeSlot: action.slot, photos };
+      return { ...state, phase: state.mode === "gallery" ? "filling" : "capturing", activeSlot: action.slot, photos };
     }
 
     case "RETAKE_ALL":
@@ -118,13 +138,13 @@ export function transition(state: SessionState, action: Transition): SessionStat
       }
       return {
         ...state,
-        phase: "capturing",
+        phase: state.mode === "gallery" ? "filling" : "capturing",
         photos: Array.from({ length: slotsCount(state) }, () => null),
         activeSlot: 0,
       };
 
     case "FINISH":
-      if (state.phase !== "reviewing" && state.phase !== "capturing") {
+      if (state.phase !== "reviewing" && state.phase !== "capturing" && state.phase !== "filling") {
         throw new Error(`Transisi ilegal: ${state.phase} -> done`);
       }
       return { ...initialSessionState, phase: "done" };

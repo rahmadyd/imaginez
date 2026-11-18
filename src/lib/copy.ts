@@ -57,6 +57,16 @@
     soundOff: "Sound off",
     shutter: "Take portrait",
   },
+  s3g: {
+    title: "Fill the Frames",
+    subtitle: "Portraits from your gallery take the stage. The camera stays dark.",
+    progress: (filled: number, total: number) => `${filled} of ${total} frames filled`,
+    add: "Add portrait from gallery",
+    useCamera: "Use the camera instead",
+    cancel: "Leave the Stage",
+    reading: "Preparing your portrait...",
+    failed: "That file could not be read. Choose an image file.",
+  },
   s4: {
     download: "Claim Your Keepsake",
     share: "Share",
@@ -72,6 +82,7 @@
     png: "PNG",
     jpg: "JPG",
     keepsake: "Your Keepsake",
+    portraits: (count: number) => `${count} portraits`,
   },
   s5: {
     title: "The Curtain Falls.",

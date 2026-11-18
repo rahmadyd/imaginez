@@ -70,7 +70,8 @@ Legenda: **AC** = acceptance criteria.
 
 - [x] **T3.2 wipe() dan idle timer**
   Lepas semua ImageBitmap, blob URL, canvas, stream, dan reset store. Pemicu: Selesai, idle (default 3 menit), pagehide, mulai ulang.
-  **AC:** unit test memverifikasi close() dan evokeObjectURL dipanggil. Idle timer ter-reset oleh interaksi. (	ests/unit/session-wipe.test.ts, 	ests/unit/session-idle.test.ts)
+  **AC:** unit test memverifikasi close() dan 
+evokeObjectURL dipanggil. Idle timer ter-reset oleh interaksi. (	ests/unit/session-wipe.test.ts, 	ests/unit/session-idle.test.ts)
 
 - [x] **T3.3 S0 Landing + transisi tirai** *(ritual AI-SLOP)*
   **AC:** sesuai DESIGN.md S0. Tirai membuka 600 ms. prefers-reduced-motion memakai fade. (src/app/page.tsx)
@@ -92,6 +93,10 @@ Legenda: **AC** = acceptance criteria.
 
 - [x] **T3.8 S5 Selesai + e2e privasi**
   **AC:** Playwright (kamera palsu) menjalankan alur penuh dan membuktikan: (a) tidak ada request keluar dengan body gambar, (b) setelah "Selesai", localStorage, sessionStorage, IndexedDB, dan Cache Storage tidak memuat data foto, (c) kamera mati di halaman hasil (0 track video `live`). (	ests/e2e/privacy.spec.ts)
+
+- [x] **T3.9 Alur galeri pra-sesi** *(ritual AI-SLOP)*
+  User boleh memilih foto dari galeri di layar izin (kamera tetap mati), mengisi slot satu per satu di layar pengisian, atau alih ke kamera kapan saja. Retake hasil galeri kembali ke layar pengisian.
+  **AC:** e2e membuktikan alur galeri mengisi semua slot lalu masuk review dengan **0 panggilan `getUserMedia`**; file dibaca lokal (tidak ada upload). (src/app/booth/page.tsx, src/features/session/machine.ts, src/components/PermissionScreen.tsx, tests/e2e/gallery.spec.ts)
 ---
 
 ## Fase 4 - Admin
@@ -161,19 +166,19 @@ Legenda: **AC** = acceptance criteria.
 
 ## Fase 10 — Pilihan kamera
 
-- [ ] **T10.1 Deteksi mode dan daftar kamera** (`features/camera`)
+- [x] **T10.1 Deteksi mode dan daftar kamera** (`features/camera`)
   Mode "mobile" jika `matchMedia('(pointer: coarse)').matches && navigator.maxTouchPoints > 0`, selain itu "desktop" (bukan user agent). Fungsi murni + unit test. Jika stream aktif tapi `track.getSettings().facingMode` kosong, perlakukan sebagai "desktop" (pemilih daftar). Tombol depan/belakang hanya jika >1 kamera. Perluas `useCamera`: `mode`, `facing` ("user"|"environment"), `devices` (videoinput), `activeDeviceId`, `switchFacing()`, `selectDevice(id)`, `refreshDevices()`. `enumerateDevices` setelah izin; label kosong → "Kamera 1", "Kamera 2", dst. Dengarkan `devicechange`; jika kamera aktif hilang fallback ke default + toast.
   **AC:** unit test mode, label kosong, dan devicechange lulus.
 
-- [ ] **T10.2 Mobile: depan / belakang**
+- [x] **T10.2 Mobile: depan / belakang**
   Constraint `facingMode`: coba `{ exact }` dulu, jika `OverconstrainedError` ulangi `{ ideal }`. Tanpa daftar lensa (wide/ultra/tele). Preview depan dicerminkan (`scaleX(-1)`), belakang tidak; hasil capture mengikuti kondisi mirror preview saat jepret ditekan (ARCHITECTURE §7.1). Pindah kamera: hentikan semua track lama (`track.stop()`) dulu, baru buka baru; tampilkan keadaan "memuat" singkat.
   **AC:** pindah depan↔belakang melepas track lama (test). Preview cermin hanya kamera depan.
 
-- [ ] **T10.3 Desktop: pemilih kamera**
+- [x] **T10.3 Desktop: pemilih kamera**
   Kontrol "Kamera" di Capture membuka menu/dialog daftar kamera dengan penanda aktif. Pemilihan `deviceId: { exact: id }`. Toggle "Cermin preview" (default aktif), berlaku pada preview dan hasil jepretan. Pilihan terakhir boleh disimpan di `localStorage` (`pb:camera`, hanya mode/facing/deviceId/mirror, tanpa data foto); jika `deviceId` tak ada, abaikan.
   **AC:** memilih kamera lain mengganti stream dan menghentikan stream lama.
 
-- [ ] **T10.4 Aturan umum**
+- [x] **T10.4 Aturan umum**
   Pindah/pilih dinonaktifkan selama countdown dan saat pengambilan foto. Foto di nampan tetap (boleh dari kamera berbeda). Resolusi ideal 1920×1080 (portrait menyesuaikan); `captureFrame` tetap center-crop ke `layout.captureAspect`. `NotReadableError` → pesan DESIGN §8 + "Pilih kamera lain" (desktop)/"Coba kamera lain" (mobile). Deteksi browser dalam aplikasi (UA) hanya untuk petunjuk "Buka di Chrome atau Safari" saat `getUserMedia` gagal. Privasi ARCHITECTURE §2; semua track dihentikan saat `wipe()`.
   **AC:** e2e privasi tetap lulus.
 
