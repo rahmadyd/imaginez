@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import type { AdminTemplate } from "@/features/templates/schema";
 import { Sunburst, GrainOverlay, FiligreeCorners, TheatreDivider, RibbonBadge } from "@/components/ornaments/TheatreOrnaments";
-import { getFallbackAnalytics, type DashboardAnalytics, type DateRangeKey, type TrendPoint } from "@/features/admin/analytics";
+import { getEmptyAnalytics, type DashboardAnalytics, type DateRangeKey, type TrendPoint } from "@/features/admin/analytics";
 
 export default function AdminPage() {
   const router = useRouter();
@@ -132,8 +132,8 @@ export default function AdminPage() {
     }
   };
 
-  const fallbackAnalytics = useMemo(() => getFallbackAnalytics(range, templates), [range, templates]);
-  const analytics = analyticsConfigured && analyticsData ? analyticsData : fallbackAnalytics;
+  const emptyAnalytics = useMemo(() => getEmptyAnalytics(range, templates), [range, templates]);
+  const analytics = analyticsConfigured && analyticsData ? analyticsData : emptyAnalytics;
   const tracked = analyticsConfigured && analyticsData;
   const templateUsageById = useMemo(() => {
     const map = new Map<string, number>();
@@ -195,7 +195,7 @@ export default function AdminPage() {
             title="Total Web Visitors"
             value={formatNum(analytics.kpis.visitors)}
             note={<TrendBadge value={analytics.kpis.visitorsTrendPct} />}
-            sub={analytics.source.visitors === "fallback" ? "Estimated (tracking pending)" : "Tracked"}
+            sub={analytics.source.visitors === "empty" ? "Belum ada data" : "Tracked"}
           />
           <KpiCard
             title="Completed Photo Sessions"
@@ -232,7 +232,7 @@ export default function AdminPage() {
                 </div>
               </div>
               <TrendChart data={analytics.trend} />
-              <p className="font-mono text-[10px] text-ink-2/70">{tracked ? "Tracking data from booth events." : (analyticsLoading ? "Loading analytics..." : "Fallback analytics shown until tracking events are connected.")}</p>
+              <p className="font-mono text-[10px] text-ink-2/70">{tracked ? "Tracking data from booth events." : (analyticsLoading ? "Loading analytics..." : "Belum ada data tracking. Terapkan migrasi booth_events di Supabase agar pencatatan otomatis aktif.")}</p>
             </div>
           </div>
 
@@ -390,7 +390,7 @@ export default function AdminPage() {
                 </thead>
                 <tbody>
                   {analytics.activity.length === 0 ? (
-                    <tr><td colSpan={5} className="py-3 font-body text-sm text-ink-2">{tracked ? "Belum ada aktivitas pada rentang ini." : "Activity log uses fallback data until tracking events are wired."}</td></tr>
+                    <tr><td colSpan={5} className="py-3 font-body text-sm text-ink-2">{tracked ? "Belum ada aktivitas pada rentang ini." : "Belum ada aktivitas. Pencatatan otomatis berjalan setelah migrasi booth_events diterapkan."}</td></tr>
                   ) : analytics.activity.map((a) => (
                     <tr key={`${a.id}-${a.timestamp}`} className="border-b border-brass/20 last:border-b-0">
                       <td className="py-2.5 pr-3 font-mono text-xs text-gold/90">{a.id}</td>

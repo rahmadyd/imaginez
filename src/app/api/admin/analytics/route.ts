@@ -2,7 +2,7 @@
 import { isAdminRequest } from "@/lib/auth";
 import { getSupabase, getTemplateColumnSchema, isSupabaseConfigured } from "@/lib/db";
 import type { ActivityItem, DashboardAnalytics, DateRangeKey, LocationStat, TemplatePerformance, TrendPoint } from "@/features/admin/analytics";
-import { getFallbackAnalytics } from "@/features/admin/analytics";
+import { getEmptyAnalytics } from "@/features/admin/analytics";
 
 function toBool(value: unknown): boolean {
   return value === true || value === 1;
@@ -182,8 +182,7 @@ export async function GET(req: NextRequest) {
 
     return NextResponse.json({ configured: true, range, analytics });
   } catch {
-    const fallback = getFallbackAnalytics(range, []);
-    fallback.source = { visitors: "fallback", sessions: "fallback", downloads: "fallback", locations: "fallback" };
-    return NextResponse.json({ configured: false, range, analytics: fallback });
+    const empty = getEmptyAnalytics(range, []);
+    return NextResponse.json({ configured: false, range, analytics: empty });
   }
 }
