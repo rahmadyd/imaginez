@@ -48,3 +48,17 @@ Catatan audit dan verifikasi visual untuk setiap layar dan komponen UI sesuai at
   - **konkret:** Lolos. Kamera benar-benar berhenti (indikator hardware padam), bukan sekadar disembunyikan.
   - **state:** Lolos. State reviewing/done tampil utuh dengan strip, retake, unduh, dan selesai.
 - **Catatan atau perbaikan:** `tests/e2e/privacy.spec.ts` kini merekam `getUserMedia` dan memastikan 0 track video `live` di halaman hasil (desktop 1280 px & mobile 390 px, 2026-11-18). Preview kamera juga ikut diperbaiki (stream tidak lagi hilang saat `<video>` mount belakangan), dan alur unduh template seed kembali terverifikasi end-to-end.
+
+## Kamera - auto-start preview tanpa layar hitam (2026-11-18)
+- **Konsep:** Layar kamera harus langsung hidup: begitu viewfinder terbuka, preview video sudah memutar - tanpa layar hitam dan tanpa perlu menyentuh tombol ganti kamera.
+- **Perubahan:** `useCamera` memasang stream ke elemen `<video>` lewat callback ref `setVideoElement` (stream bisa sudah terbuka sebelum `<video>` mount), memutar ulang preview bila elemen ter-pause, dan menolak `start()` paralel agar tidak ada dua stream bertumpuk. `CaptureScreen` menyalakan kamera otomatis saat status `idle`; `stop()` menutup stream yang tiba terlambat.
+- **Lolos:** swap / squint / palette / font / copy / ritme / konkret / state
+  - **swap:** Lolos. Tidak ada elemen UI baru; yang hilang adalah layar hitam dan kebutuhan klik tombol kamera.
+  - **squint:** Lolos. Fokus langsung ke viewfinder berisi video live.
+  - **palette:** Lolos. Tidak ada warna/komponen baru.
+  - **font:** Lolos. Tidak ada perubahan tipografi.
+  - **copy:** Lolos. Copy lama dipertahankan; tidak ada teks baru.
+  - **ritme:** Lolos. Layout viewfinder tidak berubah.
+  - **konkret:** Lolos. Kamera benar-benar merekam dan menampilkan frame, bukan placeholder.
+  - **state:** Lolos. Preview aktif, status kamera, dan galeri fallback tetap konsisten.
+- **Catatan atau perbaikan:** `tests/unit/camera.test.ts` menambah 4 tes (stream yang mount belakangan, `start()` paralel, stream telat datang, tidak ada stream lama yang hidup setelah ganti kamera); `tests/e2e/privacy.spec.ts` memastikan preview `srcObject` terpasang, tidak ter-pause, dan `readyState >= 2` begitu layar kamera terbuka.

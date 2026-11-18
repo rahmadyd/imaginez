@@ -369,7 +369,13 @@ function CaptureScreen({ template, photos, activeSlot, camera, onCapture, onCapt
 
   useEffect(() => {
     if (camera.status === "idle") void camera.start();
-  }, [camera]);
+  }, [camera.status, camera.start]);
+
+  useEffect(() => {
+    if (camera.status !== "active") return;
+    const video = camera.videoRef.current;
+    if (video && video.paused) void video.play().catch(() => { /* autoplay may be blocked */ });
+  }, [camera.status, camera.videoRef]);
 
   useEffect(() => {
     if (camera.notice) {

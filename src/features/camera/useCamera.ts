@@ -58,6 +58,7 @@ export function useCamera({ initialFacing = "user" }: UseCameraOptions = {}): Us
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
   const requestRef = useRef(0);
+  const startingRef = useRef(false);
   const mountedRef = useRef(false);
   const prefRef = useRef<StoredPref>(initialPref);
 
@@ -113,9 +114,13 @@ export function useCamera({ initialFacing = "user" }: UseCameraOptions = {}): Us
   const attachStream = useCallback((video: HTMLVideoElement | null) => {
     const stream = streamRef.current;
     if (!video || !stream) return;
-    if (video.srcObject === stream) return;
-    video.srcObject = stream;
-    try { void video.play(); } catch { /* autoplay may be blocked */ }
+    if (video.srcObject !== stream) {
+      video.srcObject = stream;
+    }
+    if (!video.paused) return;
+    void video.play().catch(() => {
+      window.setTimeout(() => { void video.play().catch(() => { /* autoplay may be blocked */ }); }, 250);
+    });
   }, []);
 
   const setVideoElement = useCallback((el: HTMLVideoElement | null) => {
@@ -163,6 +168,8 @@ export function useCamera({ initialFacing = "user" }: UseCameraOptions = {}): Us
       if (mountedRef.current) { setError("insecure-context"); setStatus("error"); }
       return;
     }
+    if (startingRef.current) return;
+    startingRef.current = true;
     const reqId = ++requestRef.current;
     setError(null);
     setStatus("starting");
@@ -195,10 +202,13 @@ export function useCamera({ initialFacing = "user" }: UseCameraOptions = {}): Us
       if (!mountedRef.current || reqId !== requestRef.current) return;
       setError(classifyCameraError(cause));
       setStatus("error");
+    } finally {
+      startingRef.current = false;
     }
   }, [applyStream, facing, openStream, refreshDevices]);
 
   const stop = useCallback(() => {
+    startingRef.current = false;
     requestRef.current += 1;
     stopStream(streamRef.current);
     streamRef.current = null;
