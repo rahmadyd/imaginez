@@ -127,6 +127,14 @@ describe("adaptRowFromError", () => {
     expect(next?.published).toBe(0);
   });
 
+  it("mengubah angka menjadi boolean bila kolom boolean", () => {
+    const next = adaptRowFromError({ published: 1, is_active: 0 }, {
+      code: "42804",
+      message: "column templates.published is of type boolean but expression is of type integer",
+    });
+    expect(next?.published).toBe(true);
+  });
+
   it("mengembalikan null untuk error lain", () => {
     expect(adaptRowFromError({ id: "1" }, { code: "42501", message: "permission denied" })).toBeNull();
   });

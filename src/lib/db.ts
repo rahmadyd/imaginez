@@ -96,6 +96,10 @@ export async function getTemplateColumnSchema(): Promise<ColumnSchema> {
   return schema;
 }
 
+export function resetTemplateColumnSchema(): void {
+  columnSchemaPromise = null;
+}
+
 async function ensureData() {
   await fs.mkdir(DATA_DIR, { recursive: true });
   await fs.mkdir(OVERLAY_DIR, { recursive: true });

@@ -1,5 +1,5 @@
 ﻿import type { AdminTemplate, ClientTemplate, Slot } from "@/features/templates/schema";
-import { getBucket, getSupabase, getTemplateColumnSchema, isSupabaseConfigured, readLocalRows, writeLocalRows, putLocalOverlay, getLocalOverlay, deleteLocalOverlay, type ColumnInfo, type ColumnSchema } from "./db";
+import { getBucket, getSupabase, getTemplateColumnSchema, resetTemplateColumnSchema, isSupabaseConfigured, readLocalRows, writeLocalRows, putLocalOverlay, getLocalOverlay, deleteLocalOverlay, type ColumnInfo, type ColumnSchema } from "./db";
 
 type LocalRow = Record<string, unknown>;
 
@@ -90,13 +90,16 @@ export function adaptRowFromError(
     delete next[missing[1]];
     return next;
   }
-  if (error.code === "22P02" || error.code === "42804") {
-    if ("published" in next && typeof next.published === "boolean") {
-      next.published = next.published ? 1 : 0;
+  const wantsBoolean = /boolean/i.test(message);
+  const wantsInteger = /integer/i.test(message);
+  for (const key of ["published", "is_active"]) {
+    if (!(key in next)) continue;
+    if (wantsBoolean && typeof next[key] === "number") {
+      next[key] = next[key] !== 0;
       return next;
     }
-    if ("is_active" in next && typeof next.is_active === "boolean") {
-      next.is_active = next.is_active ? 1 : 0;
+    if (wantsInteger && typeof next[key] === "boolean") {
+      next[key] = next[key] ? 1 : 0;
       return next;
     }
   }
@@ -160,13 +163,18 @@ export async function getTemplate(id: string): Promise<AdminTemplate | null> {
 
 export async function createTemplate(t: AdminTemplate): Promise<void> {
   if (isSupabaseConfigured()) {
-    const schema = await getTemplateColumnSchema();
-    let row = buildTemplateRow(t, schema);
+    let row = buildTemplateRow(t, await getTemplateColumnSchema());
     let lastMessage = "Gagal menyimpan template ke database.";
     for (let attempt = 0; attempt < 4; attempt++) {
       const { error } = await getSupabase().from("templates").insert(row);
       if (!error) return;
       lastMessage = error.message || lastMessage;
+      resetTemplateColumnSchema();
+      const fresh = buildTemplateRow(t, await getTemplateColumnSchema());
+      if (JSON.stringify(fresh) !== JSON.stringify(row)) {
+        row = fresh;
+        continue;
+      }
       const adapted = adaptRowFromError(row, error);
       if (!adapted) break;
       row = adapted;
@@ -183,9 +191,7 @@ export async function updateTemplate(id: string, patch: Partial<Omit<AdminTempla
   if (!current) throw new Error("Template tidak ditemukan");
   const next: AdminTemplate = { ...current, ...patch, id, createdAt: current.createdAt, updatedAt: new Date().toISOString() };
   if (isSupabaseConfigured()) {
-    const schema = await getTemplateColumnSchema();
-    const full = buildTemplateRow(next, schema);
-    const { id: _id, created_at: _ca, ...rest } = full;
+    const { id: _id, created_at: _ca, ...rest } = buildTemplateRow(next, await getTemplateColumnSchema());
     void _id; void _ca;
     let row = rest;
     let lastMessage = "Gagal memperbarui template di database.";
@@ -193,6 +199,14 @@ export async function updateTemplate(id: string, patch: Partial<Omit<AdminTempla
       const { error } = await getSupabase().from("templates").update(row).eq("id", id);
       if (!error) return;
       lastMessage = error.message || lastMessage;
+      resetTemplateColumnSchema();
+      const fresh = buildTemplateRow(next, await getTemplateColumnSchema());
+      const { id: _fid, created_at: _fca, ...freshRest } = fresh;
+      void _fid; void _fca;
+      if (JSON.stringify(freshRest) !== JSON.stringify(row)) {
+        row = freshRest;
+        continue;
+      }
       const adapted = adaptRowFromError(row, error);
       if (!adapted) break;
       row = adapted;
