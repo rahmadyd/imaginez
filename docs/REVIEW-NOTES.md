@@ -105,3 +105,17 @@ Catatan audit dan verifikasi visual untuk setiap layar dan komponen UI sesuai at
   - **state:** Lolos. Fase `filling` punya state sibuk (reading/error), progres terisi, dan jalur retake kembali ke pengisian.
 - **Catatan atau perbaikan:** `tests/unit/session-machine.test.ts` menambah 5 tes (transisi galeri, retake ke `filling`, alih ke kamera, transisi ilegal); `tests/e2e/gallery.spec.ts` membuktikan alur galeri sampai review dengan **0 panggilan `getUserMedia`** (2026-11-19).
   - **Verifikasi produksi (2026-11-19, versi `3f508087`):** alur galeri pada template 8 slot di `https://imaginez.rahmadhidayad100.workers.dev` — progres "1 of 8 frames filled", 0 panggilan `getUserMedia` sebelum dan sesudah review, screenshot `docs/screenshots/t39-gallery-fill-mobile-390px.png` dan `docs/screenshots/t39-gallery-review-mobile-390px.png`.
+
+## S1 - kartu template seragam dan label jumlah slot (2026-11-19)
+- **Konsep:** Galeri template jadi "vitrine" dengan kotak kaca yang sama besar untuk setiap frame, apa pun rasionya, dan label yang jujur menyebut jumlah slot.
+- **Perubahan:** Area preview tiap kartu memakai rasio tetap `aspect-[3/4]` dengan latar gelap halus (`bg-paper`), gambar template di dalamnya `object-contain` + `w-full h-full` sehingga semua kartu satu baris sama tinggi. Padding bawah kartu (`pb-7`) menyisakan zona aman di bawah teks judul/jumlah slot sehingga ornamen sudut bawah tidak pernah menabrak teks (ornamen sudah `pointer-events-none`). Label jumlah foto berubah dari "portraits" menjadi "slots" (kartu pilihan template, filter jumlah, dan footer review) karena bentuk lubang foto tidak selalu portrait.
+- **Lolos:** swap / squint / palette / font / copy / ritme / konkret / state
+  - **swap:** Lolos. Struktur DOM kartu sama; hanya rasio kotak preview dan padding bawah yang berubah.
+  - **squint:** Lolos. Judul template dan jumlah slot tetap paling terbaca di bawah preview.
+  - **palette:** Lolos. Hanya token yang sudah ada (`bg-paper`, `bg-paper-2`, `border-brass/30`).
+  - **font:** Lolos. Tidak ada perubahan tipografi.
+  - **copy:** Lolos. Penamaan baru dikumpulkan di `copy.s1.photoCount`/`copy.s1.slotFilter` dan `copy.s4.slots`.
+  - **ritme:** Lolos. Jarak antar kartu tetap `gap-3`; area gambar kini setinggi untuk semua rasio template.
+  - **konkret:** Lolos. Preview template asli (PNG overlay) tetap tampil, bukan placeholder.
+  - **state:** Lolos. Filter jumlah slot, status terpilih (border emas), dan skeleton loading ikut memakai rasio baru.
+- **Catatan atau perbaikan:** skeleton loading diganti ke `aspect-[3/4]` agar sama dengan kartu; selector e2e kartu template berubah dari `hasText: /portrait/` ke `button:has(img)` karena label sudah tidak memuat kata "portrait"; ukuran kartu terukur identik (173×288 px di 390 px, 179×295 px di 1280 px) untuk template strip 1:3 dan grid 2:3.

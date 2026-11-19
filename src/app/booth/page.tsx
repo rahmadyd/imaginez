@@ -330,7 +330,7 @@ function ChooseScreen({ loadState, templates, selectedId, onSelect, onNext, onRe
         <TheatreDivider className="mb-4" />
         {loadState === "ready" && slotOptions.length > 1 && (
           <label className="mb-4 flex items-center gap-3 font-body text-xs uppercase tracking-[0.14em] text-ink-2">
-            <span>{copy.s1.portraits}</span>
+            <span>{copy.s1.slotFilter}</span>
             <select
               value={slotFilter}
               onChange={(e) => setSlotFilter(e.target.value)}
@@ -338,14 +338,14 @@ function ChooseScreen({ loadState, templates, selectedId, onSelect, onNext, onRe
             >
               <option value="all">{copy.s1.allFrames}</option>
               {slotOptions.map((n) => (
-                <option key={n} value={String(n)}>{n} portraits</option>
+                <option key={n} value={String(n)}>{copy.s1.photoCount(n)}</option>
               ))}
             </select>
           </label>
         )}
         {loadState === "loading" && (
           <div className="grid grid-cols-2 gap-3">
-            {[0,1,2,3].map(i => <div key={i} className="aspect-[1/3] bg-paper-2 border border-brass/30 animate-pulse" />)}
+            {[0,1,2,3].map(i => <div key={i} className="aspect-[3/4] bg-paper-2 border border-brass/30 animate-pulse" />)}
           </div>
         )}
         {loadState === "empty" && <p className="font-body text-ink-2">{copy.s1.empty}</p>}
@@ -361,17 +361,16 @@ function ChooseScreen({ loadState, templates, selectedId, onSelect, onNext, onRe
             <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
               {filtered.map(t => {
                 const isSelected = t.id === selectedId;
-                const ar = t.canvas?.w && t.canvas?.h ? `${t.canvas.w} / ${t.canvas.h}` : "1 / 3";
                 return (
                   <button key={t.id} onClick={() => onSelect(t.id)}
                     className={`relative text-left p-[1px] bg-paper-2 flex flex-col transition-colors ${isSelected ? "border border-gold" : "border border-brass/40 hover:border-brass/70"}`}>
                     <FiligreeCorners size={22} inset="inset-1" />
-                    <div className={`relative flex flex-col gap-2 p-2 border ${isSelected ? "border-gold/50" : "border-brass/20"}`}>
-                      <div className="w-full bg-paper border border-brass/30 flex items-center justify-center overflow-hidden" style={{ aspectRatio: ar }}>
+                    <div className={`relative flex flex-col gap-2 p-2 pb-7 border ${isSelected ? "border-gold/50" : "border-brass/20"}`}>
+                      <div className="w-full bg-paper border border-brass/30 flex items-center justify-center overflow-hidden aspect-[3/4]">
                         {/* eslint-disable-next-line @next/next/no-img-element */}
-                        <img src={`/api/templates/${t.id}/overlay`} alt={`${t.name}, ${t.slots.length} portraits`} className="w-full h-full object-contain" width={t.canvas?.w ?? 1200} height={t.canvas?.h ?? 3600} decoding="async" />
+                        <img src={`/api/templates/${t.id}/overlay`} alt={`${t.name}, ${copy.s1.photoCount(t.slots.length)}`} className="w-full h-full object-contain" width={t.canvas?.w ?? 1200} height={t.canvas?.h ?? 3600} decoding="async" />
                       </div>
-                      <div>
+                      <div className="min-w-0">
                         <p className="font-display text-sm text-ink truncate">{t.name}</p>
                         <p className="font-body text-[11px] uppercase tracking-[0.14em] text-ink-2">{copy.s1.photoCount(t.slots.length)}</p>
                       </div>
@@ -883,7 +882,7 @@ function ReviewScreen({ template, photos, sessionCode, onRetakeSlot, onRetakeAll
                 <StripPreview template={template} photos={photos} onCanvas={setPreviewCanvas} />
                 <div className="border-t border-dashed border-brass/50 mt-3 pt-2 flex justify-between font-body text-[10px] uppercase tracking-[0.18em] text-ink-2">
                   <span>{copy.brand}</span>
-                  <span>{copy.s4.portraits(template.slots.length)}</span>
+                  <span>{copy.s4.slots(template.slots.length)}</span>
                 </div>
               </div>
             </div>
