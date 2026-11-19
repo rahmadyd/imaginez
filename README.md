@@ -1,60 +1,87 @@
 ﻿# imaginez — Web Photobooth
 
-Photobooth web: pilih template, ambil foto, unduh strip. Foto user diproses di perangkat (canvas) dan **tidak pernah** dikirim/disimpan ke server.
+Photobooth berbasis web: pilih template, ambil foto, unduh strip. Foto user diproses sepenuhnya di perangkat (canvas) dan **tidak pernah** dikirim atau disimpan di server.
+
+## Fitur
+
+- Pilih template photo strip dari template yang dipublish admin.
+- Ambil foto lewat kamera, atau isi slot dari galeri tanpa menyalakan kamera.
+- Preview live dengan rasio dan area crop yang identik dengan hasil akhir strip.
+- Review, retake per slot, unduh PNG/JPG, dan bagikan lewat Web Share API.
+- Dashboard admin: unggah template PNG, atur slot, publish, dan lihat analytics.
 
 ## Stack
-- Next.js (App Router), TypeScript, Tailwind, Zod, Vitest, Playwright
-- Backend (admin, template, share sementara, analytics): **Supabase Postgres + Supabase Storage**. Deploy via `@opennextjs/cloudflare` ke Cloudflare Workers. Fallback dev lokal (filesystem `data/`) jika env Supabase tidak diset.
 
-## Setup
+- Next.js (App Router), TypeScript, Tailwind CSS, Zod
+- Vitest (unit test), Playwright (e2e test)
+- Backend: Supabase (Postgres, Storage, Auth), deploy via OpenNext ke Cloudflare Workers
+- Fallback dev lokal: store filesystem `data/` dan seed `public/seed/` bila env backend belum diisi
+
+## Menjalankan secara lokal
+
 ```bash
 pnpm install
 cp .env.example .env.local   # isi sesuai kebutuhan
 pnpm dev
 ```
 
-### Environment
-Lihat `.env.example`.
-- `SUPABASE_URL`, `SUPABASE_SECRET_KEY`, `SUPABASE_STORAGE_BUCKET` - metadata template, share sementara, dan overlay (server-side). Jika kosong, app memakai store lokal `data/` (dev) dan seed `public/seed/`.
-- `SUPABASE_PUBLISHABLE_KEY` - publishable key (`sb_publishable_...`) untuk login admin lewat Supabase Auth.
-- `ADMIN_EMAIL` - email yang boleh login ke dashboard (pisahkan dengan koma jika lebih dari satu). Wajib diisi; jika kosong semua login ditolak.
+Tanpa env backend, aplikasi berjalan memakai data seed di `public/seed/`.
 
-### Supabase (production)
-1. Buat project & bucket storage (mis. `templates`).
-2. Jalankan migrasi di SQL Editor, urut:
-   - `migrations/supabase_init.sql` (tabel `templates`)
-   - `migrations/supabase_analytics.sql` (`booth_events`, kolom `is_active`/`usage_count`)
-   - `migrations/supabase_photo_shares.sql` (tabel `photo_shares` untuk share sementara TTL ~5 menit)
-   - `migrations/supabase_align.sql` (hanya untuk database lama: `published` integer → boolean, `slots_json` text → jsonb, tambah `is_active`/`usage_count`/`booth_events`)
-3. Buat user admin di Supabase Dashboard → Authentication → Users, lalu catat emailnya.
-4. Set env vars di Cloudflare Dashboard → Workers → Settings → Variables and Secrets:
-   - `SUPABASE_URL`
-   - `SUPABASE_SECRET_KEY` (new 2026 format `sb_secret_...`; legacy `SUPABASE_SERVICE_ROLE_KEY` juga masih didukung)
-   - `SUPABASE_PUBLISHABLE_KEY` (new 2026 format `sb_publishable_...`)
-   - `SUPABASE_STORAGE_BUCKET`
-   - `ADMIN_EMAIL`
-5. Deploy: `pnpm deploy`
+## Environment
+
+Daftar lengkap ada di `.env.example`.
+
+| Variabel | Keterangan |
+|---|---|
+| `SUPABASE_URL` | URL project backend |
+| `SUPABASE_SECRET_KEY` | Kunci server-side untuk API internal |
+| `SUPABASE_PUBLISHABLE_KEY` | Kunci publishable untuk autentikasi admin |
+| `SUPABASE_STORAGE_BUCKET` | Bucket penyimpanan file template |
+| `ADMIN_EMAIL` | Email yang boleh masuk ke dashboard admin (pisahkan dengan koma untuk beberapa email) |
+
+Env kosong berarti semua login admin ditolak dan aplikasi memakai fallback lokal.
 
 ## Perintah
+
 ```bash
-pnpm dev
-pnpm build
-pnpm lint
-pnpm typecheck
-pnpm test
-pnpm e2e
-pnpm preview    # OpenNext Cloudflare preview lokal
-pnpm deploy     # OpenNext Cloudflare deploy ke production
+pnpm dev         # server pengembangan
+pnpm build       # build produksi
+pnpm lint        # ESLint
+pnpm typecheck   # tsc --noEmit
+pnpm test        # unit test (Vitest)
+pnpm e2e         # e2e test (Playwright, kamera palsu)
+pnpm preview     # preview build OpenNext secara lokal
+pnpm deploy      # deploy ke Cloudflare Workers
 ```
 
-## Catatan privasi
-- Tidak ada request jaringan yang membawa data foto user; tidak ada persistensi foto di storage browser/SW.
-- Foto dilepas lewat `wipe()` saat Selesai, idle, `pagehide`, atau mulai ulang.
-- Overlay template disajikan same-origin via `/api/templates/:id/overlay`.
-- Share (opsional, opt-in user) menyimpan foto ke Supabase Storage dengan TTL ~5 menit lalu dihapus.
+## Struktur
 
-## Admin
-- **Login:** `/login` (butuh email + kata sandi). Dashboard admin (`/admin`) & API admin hanya bisa diakses setelah login.
-- **Kredensial:** dikelola di Supabase Auth (`Authentication → Users`). Server memverifikasi lewat `supabase.auth.signInWithPassword`, lalu hanya email yang terdaftar di `ADMIN_EMAIL` yang boleh masuk.
-- **Hash password:** Password disimpan di Supabase Auth (bcrypt), bukan di repo ini. Tidak ada `password_hash` di database aplikasi.
-- **Membuat template baru:** di `/admin`, unggah file PNG (punya area transparan/alpha), lalu atur slot/nama/publish di editor dan simpan. Template yang dipublish tampil di halaman pilih template user.
+```
+src/
+  app/          route App Router (halaman user, admin, API)
+  components/   komponen UI bersama
+  features/     logika per fitur (camera, sesi, compositor, template, admin)
+  lib/          utilitas, copy UI, klien backend
+  styles/       token warna, tipografi, dan utilitas
+tests/
+  unit/         unit test
+  e2e/          end-to-end test
+docs/           spesifikasi, arsitektur, desain, dan catatan review
+```
+
+## Privasi & keamanan
+
+- Tidak ada request jaringan yang membawa data foto user, dan tidak ada persistensi foto di browser.
+- Foto dilepas dari memori saat sesi selesai, idle, `pagehide`, atau saat mulai ulang.
+- Overlay template disajikan same-origin supaya canvas tidak ter-contaminasi (tainted).
+- Admin memakai sesi login server-side; kredensial dan secret tidak disimpan di repo.
+
+## Dokumentasi
+
+- `docs/SPEC.md` — apa yang dibangun dan batasan cakupannya.
+- `docs/ARCHITECTURE.md` — struktur sistem dan aturan privasi.
+- `docs/DESIGN.md` — konsep visual dan token.
+- `docs/AI-SLOP.md` — daftar pantangan UI dan ritual review.
+- `docs/TASKS.md` — daftar pekerjaan dan statusnya.
+- `docs/REVIEW-NOTES.md` — catatan review tiap perubahan UI.
+- `AGENTS.md` — aturan kerja untuk contributor dan agent.
