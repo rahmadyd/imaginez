@@ -12,7 +12,7 @@ declare global {
 
 async function openCaptureScreen(page: import("@playwright/test").Page) {
   await page.goto("/booth", { waitUntil: "networkidle" });
-  await page.locator("button").filter({ hasText: /portrait/ }).first().click();
+  await page.locator("button:has(img)").first().click();
   await page.getByRole("button", { name: "Take Your Position" }).click();
   await page.getByRole("button", { name: "Grant the Stage" }).click();
   await expect(page.getByLabel("Take portrait")).toBeVisible({ timeout: 15000 });

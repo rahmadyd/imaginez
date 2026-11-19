@@ -50,7 +50,7 @@ test.describe("privasi fase 3", () => {
     await expect(page.getByRole("heading", { name: "Select Your Frame" })).toBeVisible();
 
     // pilih template pertama
-    const firstTemplate = page.locator("button").filter({ hasText: /portrait/ }).first();
+    const firstTemplate = page.locator("button:has(img)").first();
     await firstTemplate.click();
     await page.getByRole("button", { name: "Take Your Position" }).click();
 

@@ -17,7 +17,7 @@ test.describe("alur galeri", () => {
     });
 
     await page.goto("/booth", { waitUntil: "networkidle" });
-    await page.locator("button").filter({ hasText: /portrait/ }).first().click();
+    await page.locator("button:has(img)").first().click();
     await page.getByRole("button", { name: "Take Your Position" }).click();
 
     // tombol galeri di layar izin harus benar-benar membuka pemilih file
