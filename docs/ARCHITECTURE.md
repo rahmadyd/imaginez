@@ -220,7 +220,10 @@ Pemicu: tombol Selesai, idle timeout (`idle.ts`), `pagehide`, dan ganti template
 - Kredensial dikelola di Supabase Auth; server memverifikasi lewat `supabase.auth.signInWithPassword` (tanpa menyimpan hash di aplikasi).
 - Otorisasi: email hasil login harus terdaftar di `ADMIN_EMAIL` (kosong = semua login ditolak).
 - Sesi: dimiliki Supabase Auth — `@supabase/ssr` menyimpan access/refresh token di cookie `httpOnly`, `Secure`, `SameSite=Lax`. Masa berlaku sesi mengikuti Supabase Auth (access token 1 jam, refresh token diperpanjang server); tombol "Keluar" mencabut refresh token di Supabase. Tidak ada secret sesi lokal.
-- Middleware melindungi `/admin/*` dan `/api/admin/*` (validasi `auth.getUser()` + allowlist email).
+- **Lapisan 1 — proxy (Edge):** Next.js 16 memakai `src/proxy.ts` (penerus `middleware.ts`). Matcher mendaftarkan `/admin`, `/admin/:path*`, `/api/admin`, `/api/admin/:path*` secara eksplisit sehingga **permintaan prefetch pun** tetap melewati cek sesi; sisanya memakai matcher umum tanpa header prefetch. Tanpa sesi valid, halaman admin di-redirect ke `/login?next=<path>` (halaman login berada di luar `/admin` sehingga tidak ada redirect loop) dan API admin menjawab `401`.
+- **Lapisan 2 — server layout:** `src/app/admin/layout.tsx` memanggil `supabase.auth.getUser()` + allowlist email sebelum merender `children`; bila tidak valid → `redirect('/login?next=...')`. Konten admin tidak pernah ter-render di browser tanpa sesi (tidak hanya `useEffect` di client).
+- **Logout:** `POST /api/admin/logout` mencabut sesi di Supabase dan menghapus cookie auth; navigasi penuh ke `/login` memastikan guard dievaluasi ulang, sehingga mengetik `/admin` lagi atau menekan tombol Back langsung kembali ke halaman login.
+- `tests/e2e/admin-auth.spec.ts` mengunci perilaku ini: redirect tanpa sesi, prefetch tidak membocorkan isi dashboard, `401` untuk API admin, serta siklus login → akses → logout → akses ditolak.
 - Alternatif yang lebih ringan: Cloudflare Access di depan `/admin`.
 
 ## 8. Header keamanan

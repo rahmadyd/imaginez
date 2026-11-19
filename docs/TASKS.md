@@ -135,6 +135,10 @@ evokeObjectURL dipanggil. Idle timer ter-reset oleh interaksi. (	ests/unit/sessi
   Panel editor: dropdown POSISI FOTO (Di Belakang Frame / Di Depan Frame) di bawah BLEED, disimpan bersama template. Preview editor dan hasil user memakai urutan layer yang sama.
   **AC:** unit test compositor membuktikan urutan gambar foto vs overlay untuk kedua mode; template lama default 'behind'; nilai tersimpan di database dan dipakai saat render hasil user. (src/features/compositor/render.ts, src/features/templates/schema.ts, src/lib/templates-repo.ts, src/app/admin/templates/[id]/page.tsx)
 
+- [x] **T4.11 Audit proteksi rute admin**
+  Proxy (Edge) + server layout + logout harus menutup akses /admin tanpa sesi.
+  **AC:** e2e membuktikan /admin dan sub-rute dialihkan ke /login tanpa sesi, prefetch tidak membocorkan isi dashboard, /api/admin/* menjawab 401, dan siklus login → logout menutup akses kembali. (src/proxy.ts, src/app/admin/layout.tsx, tests/e2e/admin-auth.spec.ts)
+
 - [x] **T4.9 Ganti seed dengan data nyata**
   Sisi user membaca /api/templates dari D1.
   **AC:** template yang dipublish admin muncul di S1 tanpa deploy ulang. Draft tidak muncul. (GET /api/templates prioritas DB published, fallback seed bila kosong; overlay route DB/R2 lalu seed)

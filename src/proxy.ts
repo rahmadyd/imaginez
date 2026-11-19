@@ -74,6 +74,12 @@ export async function proxy(request: NextRequest) {
 
 export const config = {
   matcher: [
+    // Route admin selalu melewati cek sesi, termasuk permintaan prefetch.
+    "/admin",
+    "/admin/:path*",
+    "/api/admin",
+    "/api/admin/:path*",
+    // Sisanya: set CSP/redirect login, kecuali prefetch.
     {
       source: "/((?!_next/static|_next/image|favicon.ico).*)",
       missing: [
