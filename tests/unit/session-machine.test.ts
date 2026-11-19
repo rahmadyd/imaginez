@@ -9,6 +9,7 @@ function template(slots = 2) {
     slots: Array.from({ length: slots }, (_, i) => ({ x: i * 10, y: 0, w: 10, h: 10, rotate: 0, radius: 0 })),
     bleed: 0,
     background: "#ffffff",
+    photoPosition: "behind" as const,
     published: true,
     isActive: true,
     usageCount: 0,

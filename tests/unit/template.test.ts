@@ -118,6 +118,22 @@ describe("template schemas", () => {
       const invalid = { ...validTemplate, canvas: { w: 7000, h: 5000 } };
       expect(() => templateSchema.parse(invalid)).toThrow("Lebar canvas maksimal 6000 piksel");
     });
+
+    it("default posisi foto = behind untuk template lama", () => {
+      const rest = { ...validTemplate } as Record<string, unknown>;
+      delete rest.photoPosition;
+      const parsed = templateSchema.parse(rest);
+      expect(parsed.photoPosition).toBe("behind");
+    });
+
+    it("menerima posisi foto front", () => {
+      const parsed = templateSchema.parse({ ...validTemplate, photoPosition: "front" });
+      expect(parsed.photoPosition).toBe("front");
+    });
+
+    it("menolak posisi foto di luar enum", () => {
+      expect(() => templateSchema.parse({ ...validTemplate, photoPosition: "sideways" })).toThrow();
+    });
   });
 
   describe("createTemplateSchema", () => {

@@ -21,6 +21,7 @@ const updateSchema = z.object({
   isActive: z.boolean().optional(),
   usageCount: z.number().int().nonnegative().optional(),
   bleed: z.number().int().nonnegative().optional(),
+  photoPosition: z.enum(["behind", "front"]).optional(),
   baseLayerKey: z.string().min(1).nullable().optional(),
   overlayKey: z.string().min(1).optional(),
 });
@@ -96,7 +97,12 @@ export async function PUT(req: NextRequest, ctx: { params: Promise<{ id: string 
   if (normalized.slots) {
     for (const s of normalized.slots as { x: number; y: number; w: number; h: number }[]) if (s.x + s.w > canvas.w || s.y + s.h > canvas.h) return NextResponse.json({ error: "Semua slot harus berada dalam batas canvas." }, { status: 400 });
   }
-  await updateTemplate(id, normalized);
+  try {
+    await updateTemplate(id, normalized);
+  } catch (e) {
+    const detail = e instanceof Error ? e.message : String(e);
+    return NextResponse.json({ error: "Gagal menyimpan template.", detail }, { status: 400 });
+  }
   return NextResponse.json({ ok: true });
 }
 

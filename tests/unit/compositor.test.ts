@@ -104,6 +104,29 @@ describe("renderStrip", () => {
     expect(ctxObj.calls.drawImage.length).toBe(2);
   });
 
+  it("menaruh foto di belakang overlay secara default", () => {
+    const overlay = makePhoto(400, 600);
+    renderStrip(template, [makePhoto(), makePhoto()], overlay);
+    const overlayCall = ctxObj.calls.drawImage.findIndex((args) => args[0] === overlay);
+    const photoCalls = ctxObj.calls.drawImage.map((args, i) => (args[0] === overlay ? -1 : i)).filter((i) => i >= 0);
+    expect(overlayCall).toBeGreaterThan(Math.max(...photoCalls));
+  });
+
+  it("menaruh foto di depan overlay saat photoPosition = front", () => {
+    const overlay = makePhoto(400, 600);
+    renderStrip({ ...template, photoPosition: "front" }, [makePhoto(), makePhoto()], overlay);
+    const overlayCall = ctxObj.calls.drawImage.findIndex((args) => args[0] === overlay);
+    const photoCalls = ctxObj.calls.drawImage.map((args, i) => (args[0] === overlay ? -1 : i)).filter((i) => i >= 0);
+    expect(overlayCall).toBeLessThan(Math.min(...photoCalls));
+  });
+
+  it("memakai posisi behind sebagai nilai bawaan template lama", () => {
+    const overlay = makePhoto(400, 600);
+    renderStrip(template, [makePhoto(), makePhoto()], overlay);
+    const overlayCall = ctxObj.calls.drawImage.findIndex((args) => args[0] === overlay);
+    expect(overlayCall).toBe(2);
+  });
+
   it("tidak menggambar label tanggal meski diberikan (dinonaktifkan)", () => {
     renderStrip(template, [makePhoto(), makePhoto()], makePhoto(400, 600), { dateLabel: "16/11/2026" });
     expect(ctxObj.calls.fillText.length).toBe(0);

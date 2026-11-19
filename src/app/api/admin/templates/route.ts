@@ -18,6 +18,7 @@ const metaSchema = z.object({
   slots: z.array(slotSchema).min(1),
   background: z.string().regex(/^#[0-9A-Fa-f]{6}$/).default("#ffffff"),
   bleed: z.number().int().nonnegative().default(0),
+  photoPosition: z.enum(["behind", "front"]).default("behind"),
   published: z.boolean().optional(),
   isActive: z.boolean().optional(),
 });
@@ -70,6 +71,7 @@ export async function POST(req: NextRequest) {
       overlayKey,
       bleed: meta.bleed ?? 0,
       background: meta.background,
+      photoPosition: meta.photoPosition ?? "behind",
       published: meta.published ?? false,
       isActive: meta.isActive ?? meta.published ?? false,
       usageCount: 0,

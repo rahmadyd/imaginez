@@ -18,6 +18,7 @@ function makeTemplate(id: string, sort: number, published: boolean): AdminTempla
     overlayKey: `${id}.png`,
     bleed: 0,
     background: "#ffffff",
+    photoPosition: "behind",
     published,
     isActive: published,
     usageCount: 0,
@@ -57,6 +58,17 @@ describe("templates repo (local fallback)", () => {
 
     await deleteTemplate("a");
     expect(await getTemplate("a")).toBeNull();
+  });
+
+  it("menyimpan dan membaca posisi foto, default behind untuk template lama", async () => {
+    await createTemplate(makeTemplate("p", 0, true));
+    expect((await getTemplate("p"))?.photoPosition).toBe("behind");
+
+    await updateTemplate("p", { photoPosition: "front" });
+    expect((await getTemplate("p"))?.photoPosition).toBe("front");
+
+    const rows = JSON.parse(await fs.readFile(path.join(dataDir, "templates.json"), "utf8")) as { photo_position?: string }[];
+    expect(rows[0].photo_position).toBe("front");
   });
 });
 

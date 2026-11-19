@@ -13,6 +13,7 @@ type TemplateRow = {
   base_layer_key?: string | null;
   bleed?: number | null;
   background: string;
+  photo_position?: string | null;
   published: boolean | number;
   is_active?: boolean | number | null;
   usage_count?: number | null;
@@ -34,6 +35,7 @@ function rowToAdmin(row: TemplateRow): AdminTemplate {
     baseLayerKey: row.base_layer_key ?? undefined,
     bleed: Number(row.bleed ?? 0),
     background: row.background,
+    photoPosition: row.photo_position === "front" ? "front" : "behind",
     published,
     isActive,
     usageCount: Number(row.usage_count ?? 0),
@@ -54,6 +56,7 @@ function adminToRow(t: AdminTemplate) {
     base_layer_key: t.baseLayerKey ?? null,
     bleed: t.bleed ?? 0,
     background: t.background,
+    photo_position: t.photoPosition,
     published: t.published,
     is_active: t.isActive,
     usage_count: t.usageCount ?? 0,
@@ -191,7 +194,11 @@ export async function updateTemplate(id: string, patch: Partial<Omit<AdminTempla
   if (!current) throw new Error("Template tidak ditemukan");
   const next: AdminTemplate = { ...current, ...patch, id, createdAt: current.createdAt, updatedAt: new Date().toISOString() };
   if (isSupabaseConfigured()) {
-    const { id: _id, created_at: _ca, ...rest } = buildTemplateRow(next, await getTemplateColumnSchema());
+    const schema = await getTemplateColumnSchema();
+    if (patch.photoPosition !== undefined && Object.keys(schema).length > 0 && !("photo_position" in schema)) {
+      throw new Error("Kolom photo_position belum ada di database. Jalankan migrations/supabase_align.sql.");
+    }
+    const { id: _id, created_at: _ca, ...rest } = buildTemplateRow(next, schema);
     void _id; void _ca;
     let row = rest;
     let lastMessage = "Gagal memperbarui template di database.";

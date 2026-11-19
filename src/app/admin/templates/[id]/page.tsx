@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { Button } from "@/components/Button";
-import type { Slot, AdminTemplate } from "@/features/templates/schema";
+import type { Slot, AdminTemplate, PhotoPosition } from "@/features/templates/schema";
 import { detectSlotsFromImage } from "@/features/admin/auto-detect";
 
 type DragMode = null | { kind: "move"; idx: number; ox: number; oy: number; start: Slot }
@@ -23,6 +23,7 @@ export default function TemplateEditorPage() {
   const [background, setBackground] = useState("#ffffff");
   const [published, setPublished] = useState(false);
   const [bleed, setBleedState] = useState(0);
+  const [photoPosition, setPhotoPosition] = useState<PhotoPosition>("behind");
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -46,6 +47,7 @@ export default function TemplateEditorPage() {
         if (!alive) return;
         const t = data.template as AdminTemplate;
         setTpl(t); setSlots(t.slots); setName(t.name); setBackground(t.background); setPublished(t.published); setBleedState(t.bleed ?? 0);
+        setPhotoPosition(t.photoPosition === "front" ? "front" : "behind");
       } catch { if (alive) setError("Gagal memuat template."); }
       finally { if (alive) setLoading(false); }
     })();
@@ -127,7 +129,7 @@ export default function TemplateEditorPage() {
     try {
       const res = await fetch(`/api/admin/templates/${tpl.id}`, {
         method: "PUT", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name, background, published, slots, canvas: tpl.canvas, bleed }),
+        body: JSON.stringify({ name, background, published, slots, canvas: tpl.canvas, bleed, photoPosition }),
       });
       if (!res.ok) { const d = await res.json().catch(()=>({})); alert(d.error || "Gagal simpan"); return; }
       setDirty(false);
@@ -248,8 +250,8 @@ export default function TemplateEditorPage() {
               backgroundSize: showWithoutPhotos ? "32px 32px" : undefined,
               backgroundPosition: showWithoutPhotos ? "0 0,0 16px,16px -16px,-16px 0" : undefined,
             }}>
-              {previewDummy && !showWithoutPhotos && slots.map((s,i)=> (
-                <div key={`p${i}`} className="absolute" style={{ left:s.x, top:s.y, width:s.w, height:s.h, transform:`rotate(${s.rotate}deg)`, background: i%2===0?"#bbb":"#999" }} />
+              {previewDummy && !showWithoutPhotos && photoPosition === "behind" && slots.map((s,i)=> (
+                <div key={`p${i}`} className="absolute pointer-events-none" style={{ left:s.x, top:s.y, width:s.w, height:s.h, transform:`rotate(${s.rotate}deg)`, borderRadius:s.radius, background: i%2===0?"#bbb":"#999" }} />
               ))}
               {(overlayImg || overlayUrl) && (
                 <>
@@ -257,6 +259,9 @@ export default function TemplateEditorPage() {
                   <img src={overlayUrl ?? `/api/templates/${id}/overlay`} alt="overlay" className="absolute inset-0 w-full h-full pointer-events-none" />
                 </>
               )}
+              {previewDummy && !showWithoutPhotos && photoPosition === "front" && slots.map((s,i)=> (
+                <div key={`pf${i}`} className="absolute pointer-events-none" style={{ left:s.x, top:s.y, width:s.w, height:s.h, transform:`rotate(${s.rotate}deg)`, borderRadius:s.radius, background: i%2===0?"#bbb":"#999" }} />
+              ))}
               {slots.map((s,i)=> {
                 const active = i === selected;
                 return (
@@ -305,6 +310,16 @@ export default function TemplateEditorPage() {
           <label className="flex flex-col gap-1 font-body text-xs uppercase tracking-[0.12em] text-ink-2">Bleed (px)
             <input type="number" min={0} value={bleed} onChange={e=>{setBleedState(Math.max(0, Number(e.target.value)||0));markDirty();}} className="border border-brass bg-paper px-2 py-1 font-mono text-sm text-ink"/>
           </label>
+          <label className="flex flex-col gap-1 font-body text-xs uppercase tracking-[0.12em] text-ink-2">Posisi foto
+            <select
+              value={photoPosition}
+              onChange={e=>{setPhotoPosition(e.target.value === "front" ? "front" : "behind");markDirty();}}
+              className="border border-brass bg-paper px-2 py-1 font-body text-sm text-ink"
+            >
+              <option value="behind">Di Belakang Frame</option>
+              <option value="front">Di Depan Frame</option>
+            </select>
+          </label>
           <div className="flex flex-col gap-2">
             <button onClick={autoDetect} className="border border-brass px-2 py-2 font-body text-xs uppercase tracking-[0.12em] text-ink bg-paper-2 hover:border-gold">Deteksi otomatis</button>
           </div>
@@ -320,7 +335,7 @@ export default function TemplateEditorPage() {
               ))}
             </div>
           )}
-          <p className="font-mono text-[11px] text-ink-2">Geser: panah (Shift=10). Delete hapus. Ctrl+D duplikat. Snap 8px. Overlay/frame manual (PNG berlubang) ditampilkan di atas; bounding box foto diatur di bawahnya.</p>
+          <p className="font-mono text-[11px] text-ink-2">Geser: panah (Shift=10). Delete hapus. Ctrl+D duplikat. Snap 8px. Posisi foto menentukan layer: Di Belakang Frame untuk PNG berlubang, Di Depan Frame untuk template solid tanpa lubang.</p>
         </aside>
       </div>
     </main>

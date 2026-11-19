@@ -106,6 +106,7 @@ export type Template = {
   baseLayerKey?: string;  // kunci PNG utuh asli (layer bawah), ada jika mode template-di-depan aktif
   bleed?: number;         // px, perluasan foto di bawah bingkai (default 0; efektif hanya jika ada layer atas)
   background: string;     // warna hex di belakang foto, default "#ffffff"
+  photoPosition: "behind" | "front"; // urutan layer foto vs overlay, default "behind"
   published: boolean;
   sort: number;
 };
@@ -180,8 +181,11 @@ renderStrip({ template, photos, overlay, baseLayer?, options? }): HTMLCanvasElem
 Urutan layer:
 1. Isi `background`.
 2. Jika `baseLayer` ada (mode template-di-depan), gambar `baseLayer` di (0,0) seukuran canvas.
-3. Untuk tiap slot: `save` → translate ke pusat slot → rotate → clip bentuk slot (persegi/rounded sesuai `slot.radius`) → `drawImage` cover-crop → `restore`. Jika ada layer atas (`baseLayer`/mode lubang) dan `template.bleed > 0`, foto digambar pada area `slot + bleed` (ke semua sisi, ter-clamp agar tidak melewati canvas) dan clip diperluas sesuai `radius + bleed` supaya tepi foto tersembunyi di bawah bingkai. Tanpa layer atas, `bleed` diabaikan.
-4. Gambar `overlay` (layer atas/transparan di area slot) di (0,0) seukuran canvas.
+3. Tentukan urutan foto vs overlay dari `template.photoPosition`:
+   - `"behind"` (default): foto per slot digambar lebih dulu, overlay di atasnya (PNG berlubang → ornamen frame menimpa pinggiran foto).
+   - `"front"`: overlay digambar lebih dulu, lalu foto per slot di atasnya mengikuti `x, y, w, h`, `rotate`, dan `radius` (template solid tanpa lubang → foto tetap terlihat).
+4. Untuk tiap slot: `save` → translate ke pusat slot → rotate → clip bentuk slot (persegi/rounded sesuai `slot.radius`) → `drawImage` cover-crop → `restore`. Jika ada layer atas (`baseLayer`/mode lubang) dan `template.bleed > 0`, foto digambar pada area `slot + bleed` (ke semua sisi, ter-clamp agar tidak melewati canvas) dan clip diperluas sesuai `radius + bleed` supaya tepi foto tersembunyi di bawah bingkai. Tanpa layer atas, `bleed` diabaikan.
+5. Gambar `overlay` (layer atas/transparan di area slot) di (0,0) seukuran canvas.
 
 `overlay`/`baseLayer` dimuat same-origin via API. Untuk template biasa (tanpa `baseLayerKey`) perilaku tetap: foto di bawah, overlay di atas.
 

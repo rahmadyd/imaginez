@@ -9,6 +9,10 @@ export const slotSchema = z.object({
   radius: z.number().int("Radius harus bilangan bulat").nonnegative("Radius tidak boleh negatif").default(0),
 });
 
+export const photoPositionSchema = z.enum(["behind", "front"], {
+  error: "Posisi foto harus 'behind' atau 'front'",
+});
+
 export const templateBaseSchema = z.object({
   id: z.string().uuid("ID harus format UUID"),
   name: z.string().min(1, "Nama template tidak boleh kosong").max(100, "Nama template maksimal 100 karakter"),
@@ -21,6 +25,7 @@ export const templateBaseSchema = z.object({
   baseLayerKey: z.string().min(1).optional(),
   bleed: z.number().int().nonnegative().default(0),
   background: z.string().regex(/^#[0-9A-Fa-f]{6}$/, "Background harus format hex (#RRGGBB)").default("#ffffff"),
+  photoPosition: photoPositionSchema.default("behind"),
   published: z.boolean().default(false),
   isActive: z.boolean().default(false),
   usageCount: z.number().int().nonnegative().default(0),
@@ -48,6 +53,7 @@ export const createTemplateSchema = z.object({
   background: templateBaseSchema.shape.background,
   bleed: templateBaseSchema.shape.bleed.optional(),
   baseLayerKey: templateBaseSchema.shape.baseLayerKey,
+  photoPosition: photoPositionSchema.optional(),
   isActive: templateBaseSchema.shape.isActive.optional(),
   usageCount: templateBaseSchema.shape.usageCount.optional(),
 });
@@ -57,6 +63,7 @@ export const updateTemplateSchema = createTemplateSchema.partial().extend({
   overlayKey: z.string().min(1).optional(),
   baseLayerKey: z.string().min(1).nullable().optional(),
   bleed: z.number().int().nonnegative().optional(),
+  photoPosition: photoPositionSchema.optional(),
   isActive: z.boolean().optional(),
   usageCount: z.number().int().nonnegative().optional(),
 });
@@ -79,6 +86,7 @@ export const adminTemplateSchema = templateSchema;
 
 export type Slot = z.infer<typeof slotSchema>;
 export type Template = z.infer<typeof templateSchema>;
+export type PhotoPosition = z.infer<typeof photoPositionSchema>;
 export type ClientTemplate = z.infer<typeof clientTemplateSchema>;
 export type AdminTemplate = z.infer<typeof adminTemplateSchema>;
 export type CreateTemplateInput = z.infer<typeof createTemplateSchema>;

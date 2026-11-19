@@ -44,9 +44,10 @@ function roundedRectPath(
  * Render strip photobooth dari template, foto, dan overlay.
  * Urutan layer: background → foto per slot → overlay template di paling atas.
  * Transparansi/bolongan pada overlay menampakkan foto di bawahnya; overlay tidak ditimpa otomatis.
+ * `photoPosition: "front"` membalik urutan: overlay digambar lebih dulu, foto di atasnya.
  */
 export function renderStrip(
-  template: Pick<Template, "canvas" | "slots" | "background"> & { bleed?: number; baseLayerKey?: string },
+  template: Pick<Template, "canvas" | "slots" | "background"> & { bleed?: number; baseLayerKey?: string; photoPosition?: "behind" | "front" },
   photos: (ImageBitmap | null)[],
   overlay: ImageBitmap,
   options: RenderStripOptions = {}
@@ -58,6 +59,7 @@ export function renderStrip(
   }
 
   const { scale = 1 } = options;
+  const photoInFront = template.photoPosition === "front";
   // foto dirender sesuai ukuran slot agar tidak meluber menimpa area template
   const bleed = 0;
 
@@ -73,15 +75,27 @@ export function renderStrip(
   ctx.fillStyle = template.background;
   ctx.fillRect(0, 0, template.canvas.w, template.canvas.h);
 
-  for (let i = 0; i < template.slots.length; i++) {
-    const slot = template.slots[i];
-    const photo = photos[i];
-    if (!photo) continue;
-    drawSlot(ctx, slot, photo, bleed, template.canvas.w, template.canvas.h);
-  }
+  const drawPhotos = () => {
+    for (let i = 0; i < template.slots.length; i++) {
+      const slot = template.slots[i];
+      const photo = photos[i];
+      if (!photo) continue;
+      drawSlot(ctx, slot, photo, bleed, template.canvas.w, template.canvas.h);
+    }
+  };
 
-  // overlay PNG utuh di atas; area transparan menampakkan foto di belakang
-  ctx.drawImage(overlay, 0, 0, template.canvas.w, template.canvas.h);
+  const drawOverlay = () => {
+    // overlay PNG utuh di atas; area transparan menampakkan foto di belakang
+    ctx.drawImage(overlay, 0, 0, template.canvas.w, template.canvas.h);
+  };
+
+  if (photoInFront) {
+    drawOverlay();
+    drawPhotos();
+  } else {
+    drawPhotos();
+    drawOverlay();
+  }
 
   const inset = Math.max(6, Math.round(Math.min(template.canvas.w, template.canvas.h) * 0.012));
   ctx.save();

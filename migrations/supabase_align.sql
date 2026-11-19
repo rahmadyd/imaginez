@@ -36,6 +36,7 @@ end $$;
 
 alter table public.templates add column if not exists base_layer_key text;
 alter table public.templates add column if not exists bleed integer not null default 0;
+alter table public.templates add column if not exists photo_position text not null default 'behind';
 alter table public.templates add column if not exists is_active boolean not null default false;
 alter table public.templates add column if not exists usage_count integer not null default 0;
 

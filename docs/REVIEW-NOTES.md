@@ -119,3 +119,17 @@ Catatan audit dan verifikasi visual untuk setiap layar dan komponen UI sesuai at
   - **konkret:** Lolos. Preview template asli (PNG overlay) tetap tampil, bukan placeholder.
   - **state:** Lolos. Filter jumlah slot, status terpilih (border emas), dan skeleton loading ikut memakai rasio baru.
 - **Catatan atau perbaikan:** skeleton loading diganti ke `aspect-[3/4]` agar sama dengan kartu; selector e2e kartu template berubah dari `hasText: /portrait/` ke `button:has(img)` karena label sudah tidak memuat kata "portrait"; ukuran kartu terukur identik (173×288 px di 390 px, 179×295 px di 1280 px) untuk template strip 1:3 dan grid 2:3.
+
+## Admin - posisi layer foto di editor template (2026-11-19)
+- **Konsep:** Admin punya satu sakelar(layer) yang jujur: PNG berlubang memakai foto di belakang frame, template solid tanpa lubang memakai foto di depan frame, dan apa yang dilihat di editor persis sama dengan hasil user.
+- **Perubahan:** Field template baru `photoPosition` (`behind` default, `front` opsional) dengan kolom DB `photo_position`. Panel editor mendapat dropdown "POSISI FOTO" (Di Belakang Frame / Di Depan Frame) di bawah BLEED, mengikuti gaya input NAMA/BACKGROUND. Preview editor menggambar dummy foto sebelum atau sesudah gambar template sesuai mode (dummy mengikuti X/Y/W/H, ROTATE, dan RADIUS, `pointer-events-none` supaya bounding box tetap bisa diklik). Compositor memakai urutan layer yang sama: `behind` = foto → overlay, `front` = overlay → foto.
+- **Lolos:** swap / squint / palette / font / copy / ritme / konkret / state
+  - **swap:** Lolos. Dropdown memakai komponen select yang sudah ada di halaman lain; tidak ada kontrol baru yang asing.
+  - **squint:** Lolos. Panel kanan tetap padat; dropdown menyatu dengan baris input lain.
+  - **palette:** Lolos. Tidak ada warna/komponen baru, hanya token yang sudah dipakai.
+  - **font:** Lolos. Mengikuti `font-body text-sm` milik input NAMA/BACKGROUND.
+  - **copy:** Lolos. Label "POSISI FOTO" dan dua opsi memakai bahasa yang sama dengan panel editor lain.
+  - **ritme:** Lolos. Jarak label-input sama dengan baris lain di panel.
+  - **konkret:** Lolos. Layer benar-benar berubah di canvas preview dan di hasil unduhan user, bukan hanya label.
+  - **state:** Lolos. Nilai default "behind" untuk template lama, tersimpan saat SIMPAN, dan kembali terbaca saat editor dibuka lagi.
+- **Catatan atau perbaikan:** `tests/unit/compositor.test.ts` menambah 3 tes urutan layer; `tests/unit/template.test.ts` menambah 3 tes default/enum; `tests/unit/templates-repo.test.ts` menambah tes persistensi. Verifikasi lokal (2026-11-19): urutan children canvas di editor berubah dari "6 dummy → overlay" menjadi "overlay → 6 dummy" saat mode diganti, bounding box slot tetap selectable, dan nilai `photoPosition: "front"` tersimpan lalu terbaca ulang lewat API admin.

@@ -17,3 +17,4 @@ create index if not exists idx_templates_pub_sort on public.templates (published
 
 alter table public.templates add column if not exists base_layer_key text;
 alter table public.templates add column if not exists bleed integer not null default 0;
+alter table public.templates add column if not exists photo_position text not null default 'behind';
