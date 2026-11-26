@@ -75,7 +75,7 @@ export default function Home() {
       />
 
       <div className={`relative z-10 max-w-[580px] px-6 text-center flex flex-col items-center gap-5 transition-opacity duration-[300ms] motion-reduce:transition-none ${opening ? "opacity-0" : "opacity-100"}`}>
-        <p className="font-body text-xs uppercase tracking-[0.3em] text-gold/80">{copy.brand}</p>
+        <p className="font-body text-xs uppercase tracking-[0.3em] text-gold/80">{copy.s0.eyebrow}</p>
         <div className="w-full border border-brass/70 p-[2px] bg-paper-2/30 relative">
           <FiligreeCorners size={34} inset="inset-1" />
           <div className="border border-brass/40 px-8 py-10 flex flex-col items-center gap-4 bg-paper-2/70 relative">

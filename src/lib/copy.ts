@@ -1,8 +1,9 @@
 ﻿export const copy = {
   brand: "imaginez",
   s0: {
-    title: "Masuk bilik",
-    subtitle: "Foto beberapa kali, unduh, selesai. Tidak ada yang disimpan.",
+    eyebrow: "jangan lupa abadikan momen kebersamaan mu",
+    title: "IMAGINE Z",
+    subtitle: "Ekspresikan dirimu sekarang, jangan nanti",
     cta: "Masuk bilik",
     note: "Diproses di perangkatmu. Tidak diunggah.",
   },
