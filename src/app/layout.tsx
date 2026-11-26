@@ -3,15 +3,17 @@ import { connection } from "next/server";
 import { fontDisplay, fontBody, fontMono } from "@/styles/fonts";
 import "./globals.css";
 
+const FAVICON_VERSION = "v3";
+
 export const metadata: Metadata = {
   title: "Imagine Z - Photo Booth Online",
   description: "Foto strip, tanpa jejak. Diproses di perangkatmu.",
   icons: {
-    icon: "/favicon.svg",
-    shortcut: "/favicon.svg",
-    apple: "/favicon.svg",
+    icon: `/favicon.svg?${FAVICON_VERSION}`,
+    shortcut: `/favicon.svg?${FAVICON_VERSION}`,
+    apple: `/favicon.svg?${FAVICON_VERSION}`,
   },
-  manifest: "/manifest.json",
+  manifest: `/manifest.json?${FAVICON_VERSION}`,
 };
 
 export default async function RootLayout({
