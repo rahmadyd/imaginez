@@ -4,7 +4,7 @@
     eyebrow: "jangan lupa abadikan momen kebersamaan mu",
     title: "IMAGINE Z",
     subtitle: "Ekspresikan dirimu sekarang, jangan nanti",
-    cta: "Masuk bilik",
+    cta: "Masuk",
     note: "Diproses di perangkatmu. Tidak diunggah.",
   },
   s1: {
