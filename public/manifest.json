@@ -1,0 +1,17 @@
+{
+  "name": "imaginez — The Cabaret Booth",
+  "short_name": "imaginez",
+  "description": "Foto strip, tanpa jejak. Diproses di perangkatmu.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#120D10",
+  "theme_color": "#120D10",
+  "icons": [
+    {
+      "src": "/favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
