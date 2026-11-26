@@ -27,10 +27,11 @@ export function getRequestCity(req: NextRequest): string | null {
   const city =
     req.headers.get("x-vercel-ip-city") ||
     req.headers.get("cf-ipcity") ||
+    req.headers.get("cf-region") ||
     req.headers.get("x-vercel-ip-country-region") ||
     null;
   const normalized = normalizeIdCity(city);
-  if (!normalized) return country === "ID" ? "Indonesia (lokasi kota tidak diketahui)" : null;
+  if (!normalized) return country === "ID" ? "Indonesia" : null;
   return normalized;
 }
 
