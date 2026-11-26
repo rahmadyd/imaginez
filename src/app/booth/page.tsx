@@ -408,6 +408,7 @@ function CaptureScreen({ template, photos, activeSlot, camera, onCapture, onCapt
   const [muted, setMuted] = useState(false);
   const [lowLight, setLowLight] = useState(false);
   const [flawless, setFlawless] = useState(false);
+  const prevFeaturesRef = useRef({ lowLight: false, flawless: false });
   const audioRef = useRef<AudioContext | null>(null);
   const fileRef = useRef<HTMLInputElement | null>(null);
   const nextEmptySlot = photos.findIndex((p) => p === null);
@@ -447,9 +448,17 @@ function CaptureScreen({ template, photos, activeSlot, camera, onCapture, onCapt
   useEffect(() => {
     if (camera.status === "idle") {
       void camera.start(undefined, { lowLight, flawless });
+      prevFeaturesRef.current = { lowLight, flawless };
     } else if (camera.status === "active") {
-      // Restart stream when lowLight changes (torch requires new getUserMedia)
-      void camera.start(undefined, { lowLight, flawless });
+      // Only restart if lowLight actually changed (torch needs new getUserMedia)
+      // flawless is post-processing, no restart needed
+      if (prevFeaturesRef.current.lowLight !== lowLight) {
+        void camera.start(undefined, { lowLight, flawless });
+        prevFeaturesRef.current = { lowLight, flawless };
+      } else {
+        // Update flawless in ref without restart
+        prevFeaturesRef.current = { lowLight, flawless };
+      }
     }
   }, [camera.status, camera.start, lowLight, flawless]);
 
