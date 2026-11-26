@@ -172,9 +172,10 @@ async function applyFlawlessFilter(canvas: HTMLCanvasElement, ctx: CanvasRenderi
   const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
   const data = imageData.data;
 
-  const brightnessFactor = 1.1;
-  const contrastFactor = 1.05;
-  const saturationFactor = 1.1;
+  // Stronger values for visible effect
+  const brightnessFactor = 1.2;    // +20% brightness
+  const contrastFactor = 1.15;     // +15% contrast
+  const saturationFactor = 1.25;   // +25% saturation
 
   for (let i = 0; i < data.length; i += 4) {
     let r = data[i];
@@ -204,8 +205,8 @@ async function applyFlawlessFilter(canvas: HTMLCanvasElement, ctx: CanvasRenderi
 
   ctx.putImageData(imageData, 0, 0);
 
-  // Apply slight Gaussian blur for smoothing
-  ctx.filter = "blur(0.5px)";
+  // Apply stronger Gaussian blur for skin smoothing
+  ctx.filter = "blur(1px)";
   ctx.drawImage(canvas, 0, 0);
   ctx.filter = "none";
 }
