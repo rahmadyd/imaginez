@@ -4,6 +4,8 @@
 export type CaptureOptions = {
   /** Cerminkan hasil secara horizontal, mengikuti tampilan preview saat jepret ditekan */
   mirror?: boolean;
+  /** Terapkan beauty filter "flawless" (smoothing + brightening) */
+  flawless?: boolean;
 };
 
 /**
@@ -151,7 +153,61 @@ export async function captureFrame(
   // Gambar canvas crop ke canvas hasil dengan skala
   resultCtx.drawImage(cropCanvas, 0, 0, resultWidth, resultHeight);
 
+  // Terapkan flawless beauty filter jika diminta
+  if (options.flawless) {
+    await applyFlawlessFilter(resultCanvas, resultCtx);
+  }
+
   return await createImageBitmap(resultCanvas);
+}
+
+/**
+ * Terapkan beauty filter "flawless" ke canvas.
+ * - Brightening: tingkatkan brightness ~10%
+ * - Contrast boost: slight increase
+ * - Saturation boost: slight increase
+ * - Smoothing: subtle blur via filter
+ */
+async function applyFlawlessFilter(canvas: HTMLCanvasElement, ctx: CanvasRenderingContext2D): Promise<void> {
+  const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+  const data = imageData.data;
+
+  const brightnessFactor = 1.1;
+  const contrastFactor = 1.05;
+  const saturationFactor = 1.1;
+
+  for (let i = 0; i < data.length; i += 4) {
+    let r = data[i];
+    let g = data[i + 1];
+    let b = data[i + 2];
+
+    // Brightness
+    r = Math.min(255, r * brightnessFactor);
+    g = Math.min(255, g * brightnessFactor);
+    b = Math.min(255, b * brightnessFactor);
+
+    // Contrast (around middle gray 128)
+    r = Math.min(255, Math.max(0, (r - 128) * contrastFactor + 128));
+    g = Math.min(255, Math.max(0, (g - 128) * contrastFactor + 128));
+    b = Math.min(255, Math.max(0, (b - 128) * contrastFactor + 128));
+
+    // Simple saturation boost: push colors away from gray
+    const gray = (r + g + b) / 3;
+    r = Math.min(255, Math.max(0, gray + (r - gray) * saturationFactor));
+    g = Math.min(255, Math.max(0, gray + (g - gray) * saturationFactor));
+    b = Math.min(255, Math.max(0, gray + (b - gray) * saturationFactor));
+
+    data[i] = r;
+    data[i + 1] = g;
+    data[i + 2] = b;
+  }
+
+  ctx.putImageData(imageData, 0, 0);
+
+  // Apply slight Gaussian blur for smoothing
+  ctx.filter = "blur(0.5px)";
+  ctx.drawImage(canvas, 0, 0);
+  ctx.filter = "none";
 }
 
 /**
@@ -171,6 +227,7 @@ export function slotAspect(slotWidth: number, slotHeight: number): number {
  * @param file File gambar (PNG, JPEG, WebP, dll.)
  * @param targetAspect Rasio aspek target (width / height) untuk crop
  * @param maxSide Sisi terpanjang maksimum untuk hasil (default 1920)
+ * @param flawless Terapkan beauty filter flawless
  * @returns Promise<ImageBitmap> yang sudah terpotong sesuai rasio
  *
  * Catatan privasi:
@@ -181,7 +238,8 @@ export function slotAspect(slotWidth: number, slotHeight: number): number {
 export async function readImageFile(
   file: File,
   targetAspect: number,
-  maxSide: number = 1920
+  maxSide: number = 1920,
+  flawless: boolean = false
 ): Promise<ImageBitmap> {
   // Baca file sebagai data URL (berjalan di thread utama)
   const dataUrl = await new Promise<string>((resolve, reject) => {
@@ -257,6 +315,11 @@ export async function readImageFile(
 
   // Gambar canvas crop ke canvas hasil dengan skala
   resultCtx.drawImage(cropCanvas, 0, 0, resultWidth, resultHeight);
+
+  // Terapkan flawless beauty filter jika diminta
+  if (flawless) {
+    await applyFlawlessFilter(resultCanvas, resultCtx);
+  }
 
   return await createImageBitmap(resultCanvas);
 }

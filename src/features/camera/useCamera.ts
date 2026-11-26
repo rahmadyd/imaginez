@@ -1,7 +1,7 @@
 ﻿"use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { buildVideoConstraints, type CameraRequest, type FacingMode } from "./constraints";
+import { buildVideoConstraints, type CameraRequest, type FacingMode, type CameraFeatures } from "./constraints";
 import { classifyCameraError, type CameraErrorType } from "./errors";
 import { detectCameraMode, resolveEffectiveMode, type CameraMode } from "./mode";
 import { stopStream } from "./stream";
@@ -17,7 +17,7 @@ export type UseCameraResult = {
   setVideoElement: (el: HTMLVideoElement | null) => void;
   status: CameraStatus;
   error: CameraErrorType | null;
-  start: (request?: CameraRequest) => Promise<void>;
+  start: (request?: CameraRequest, features?: CameraFeatures) => Promise<void>;
   stop: () => void;
   mode: CameraMode;
   facing: FacingMode;
@@ -31,6 +31,8 @@ export type UseCameraResult = {
   refreshDevices: () => Promise<MediaDeviceInfo[]>;
   notice: string | null;
   clearNotice: () => void;
+  features: CameraFeatures;
+  setFeatures: (f: CameraFeatures) => void;
 };
 
 const STORAGE_KEY = "pb:camera";
@@ -76,6 +78,7 @@ export function useCamera({ initialFacing = "user" }: UseCameraOptions = {}): Us
     typeof initialPref.mirrorPreview === "boolean" ? initialPref.mirrorPreview : true
   );
   const [notice, setNotice] = useState<string | null>(null);
+  const [features, setFeaturesState] = useState<CameraFeatures>({ lowLight: false, flawless: false });
   const statusRef = useRef(status);
   const activeDeviceIdRef = useRef(activeDeviceId);
   useEffect(() => { statusRef.current = status; }, [status]);
@@ -146,24 +149,28 @@ export function useCamera({ initialFacing = "user" }: UseCameraOptions = {}): Us
     attachStream(videoRef.current);
   }, [attachStream]);
 
-  const openStream = useCallback(async (request: CameraRequest): Promise<MediaStream> => {
+const openStream = useCallback(async (request: CameraRequest, features: CameraFeatures = {}): Promise<MediaStream> => {
     const mediaDevices = typeof navigator === "undefined" ? undefined : navigator.mediaDevices;
     if (!mediaDevices?.getUserMedia) throw Object.assign(new Error("no media"), { name: "InsecureContextError" });
     if (request.kind === "facing" && request.exact) {
       try {
-        return await mediaDevices.getUserMedia(buildVideoConstraints({ kind: "facing", facing: request.facing, exact: true }));
+        return await mediaDevices.getUserMedia(buildVideoConstraints({ kind: "facing", facing: request.facing, exact: true }, features));
       } catch (e) {
         const name = (e as { name?: string })?.name;
         if (name === "OverconstrainedError" || name === "ConstraintNotSatisfiedError") {
-          return mediaDevices.getUserMedia(buildVideoConstraints({ kind: "facing", facing: request.facing, exact: false }));
+          return mediaDevices.getUserMedia(buildVideoConstraints({ kind: "facing", facing: request.facing, exact: false }, features));
         }
         throw e;
       }
     }
-    return mediaDevices.getUserMedia(buildVideoConstraints(request));
+    return mediaDevices.getUserMedia(buildVideoConstraints(request, features));
   }, []);
 
-  const start = useCallback(async (request?: CameraRequest) => {
+  const setFeatures = useCallback((f: CameraFeatures) => {
+    setFeaturesState(prev => ({ ...prev, ...f }));
+  }, []);
+
+  const start = useCallback(async (request?: CameraRequest, features?: CameraFeatures) => {
     const secureContext = typeof window === "undefined" || window.isSecureContext !== false;
     if (!secureContext) {
       if (mountedRef.current) { setError("insecure-context"); setStatus("error"); }
@@ -179,7 +186,8 @@ export function useCamera({ initialFacing = "user" }: UseCameraOptions = {}): Us
     if (videoRef.current) videoRef.current.srcObject = null;
     try {
       const effRequest: CameraRequest = request ?? { kind: "facing", facing };
-      const stream = await openStream(effRequest);
+      const effFeatures: CameraFeatures = features ?? { lowLight: false, flawless: false };
+      const stream = await openStream(effRequest, effFeatures);
       if (!mountedRef.current || reqId !== requestRef.current) { stopStream(stream); return; }
       await applyStream(stream);
       if (!mountedRef.current || reqId !== requestRef.current) {
@@ -273,5 +281,7 @@ export function useCamera({ initialFacing = "user" }: UseCameraOptions = {}): Us
     refreshDevices,
     notice,
     clearNotice,
+    features,
+    setFeatures,
   };
 }

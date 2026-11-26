@@ -242,18 +242,18 @@ export default function BoothPage() {
         photos={session.state.photos}
         activeSlot={session.state.activeSlot}
         camera={camera}
-        onCapture={async (slot, mirror) => {
+        onCapture={async (slot, mirror, flawless) => {
           const video = camera.videoRef.current
           if (!video) return;
           const slotDef = session.state.template!.slots[slot];
           const aspect = slotDef.w / slotDef.h;
-          const bmp = await captureFrame(video, aspect, 1920, { mirror });
+          const bmp = await captureFrame(video, aspect, 1920, { mirror, flawless });
           session.capturePhoto(slot, bmp);
         }}
-        onCaptureFile={async (slot, file) => {
+        onCaptureFile={async (slot, file, flawless) => {
           const slotDef = session.state.template!.slots[slot];
           const aspect = slotDef.w / slotDef.h;
-          const bmp = await readImageFile(file, aspect, 1920);
+          const bmp = await readImageFile(file, aspect, 1920, flawless);
           session.capturePhoto(slot, bmp);
         }}
         onComplete={() => session.captureComplete()}
@@ -396,8 +396,8 @@ type CameraApi = ReturnType<typeof useCamera>;
 function CaptureScreen({ template, photos, activeSlot, camera, onCapture, onCaptureFile, onComplete, onCancel }: {
   template: ClientTemplate; photos: (ImageBitmap | null)[]; activeSlot: number;
   camera: CameraApi;
-  onCapture: (slot: number, mirror: boolean) => Promise<void>;
-  onCaptureFile: (slot: number, file: File) => Promise<void>;
+  onCapture: (slot: number, mirror: boolean, flawless?: boolean) => Promise<void>;
+  onCaptureFile: (slot: number, file: File, flawless?: boolean) => Promise<void>;
   onComplete: () => void; onCancel: () => void;
 }) {
   const [count, setCount] = useState<number | null>(null);
@@ -406,6 +406,8 @@ function CaptureScreen({ template, photos, activeSlot, camera, onCapture, onCapt
   const [flash, setFlash] = useState(false);
   const [pickerOpen, setPickerOpen] = useState(false);
   const [muted, setMuted] = useState(false);
+  const [lowLight, setLowLight] = useState(false);
+  const [flawless, setFlawless] = useState(false);
   const audioRef = useRef<AudioContext | null>(null);
   const fileRef = useRef<HTMLInputElement | null>(null);
   const nextEmptySlot = photos.findIndex((p) => p === null);
@@ -443,8 +445,8 @@ function CaptureScreen({ template, photos, activeSlot, camera, onCapture, onCapt
   const playShutter = () => { beep(220, 0.03, "triangle", 0.05); beep(140, 0.06, "sine", 0.04); };
 
   useEffect(() => {
-    if (camera.status === "idle") void camera.start();
-  }, [camera.status, camera.start]);
+    if (camera.status === "idle") void camera.start(undefined, { lowLight, flawless });
+  }, [camera.status, camera.start, lowLight, flawless]);
 
   useEffect(() => {
     if (camera.status !== "active") return;
@@ -479,7 +481,7 @@ function CaptureScreen({ template, photos, activeSlot, camera, onCapture, onCapt
         try { navigator.vibrate(15); } catch { /* ignore */ }
       }
       try {
-        await onCapture(idx, mirrorAtShot);
+        await onCapture(idx, mirrorAtShot, flawless);
       } catch {
         // capture failed (e.g. video not ready); allow retry
       }
@@ -525,7 +527,7 @@ function CaptureScreen({ template, photos, activeSlot, camera, onCapture, onCapt
     const idx = photos.findIndex(p => p === null);
     if (idx === -1) return;
     setBusy(true);
-    try { await onCaptureFile(idx, file); } finally { setBusy(false); }
+    try { await onCaptureFile(idx, file, flawless); } finally { setBusy(false); }
   };
 
   const cameraStatus = camera.status;
@@ -630,6 +632,8 @@ function CaptureScreen({ template, photos, activeSlot, camera, onCapture, onCapt
         <div className="flex gap-2 flex-wrap justify-center">
           <button onClick={() => setAuto(true)} className={`px-3 py-2 border font-body text-[11px] uppercase tracking-[0.14em] min-h-[40px] ${auto ? "bg-booth-red text-ink border-gold" : "border-brass/50 text-ink-2"}`}>{copy.s3.auto}</button>
           <button onClick={() => setAuto(false)} className={`px-3 py-2 border font-body text-[11px] uppercase tracking-[0.14em] min-h-[40px] ${!auto ? "bg-booth-red text-ink border-gold" : "border-brass/50 text-ink-2"}`}>{copy.s3.manual}</button>
+          <button onClick={() => setLowLight(l => !l)} aria-pressed={lowLight} aria-label={copy.s3.lowLight} className={`px-3 py-2 border font-body text-[11px] uppercase tracking-[0.14em] min-h-[40px] ${lowLight ? "bg-booth-red text-ink border-gold" : "border-brass/50 text-ink-2"}`}>{copy.s3.lowLight}</button>
+          <button onClick={() => setFlawless(f => !f)} aria-pressed={flawless} aria-label={copy.s3.flawless} className={`px-3 py-2 border font-body text-[11px] uppercase tracking-[0.14em] min-h-[40px] ${flawless ? "bg-booth-red text-ink border-gold" : "border-brass/50 text-ink-2"}`}>{copy.s3.flawless}</button>
           <button onClick={() => { setMuted(m => !m); if (!muted) { try { audioRef.current?.suspend(); } catch { /* ignore */ } } else { ensureAudio(); } }} aria-pressed={muted} aria-label={muted ? copy.s3.soundOff : copy.s3.soundOn} className={`px-3 py-2 border font-body text-[11px] uppercase tracking-[0.14em] min-h-[40px] ${muted ? "border-brass/50 text-ink-2" : "border-gold/60 text-gold"}`}>{muted ? copy.s3.soundOff : copy.s3.soundOn}</button>
           {showPickerBtn && (
             <button onClick={async () => { await camera.refreshDevices(); setPickerOpen(true); }} disabled={!canSwitch} className="px-3 py-2 border border-brass/50 text-ink-2 font-body text-[11px] uppercase tracking-[0.14em] min-h-[48px] disabled:opacity-40">{copy.s3.chooseCamera}</button>

@@ -57,6 +57,8 @@
     soundOn: "Suara nyala",
     soundOff: "Suara mati",
     shutter: "Ambil foto",
+    lowLight: "Low Light",
+    flawless: "Flawless",
   },
   s3g: {
     title: "Isi bingkai",
