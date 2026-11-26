@@ -81,7 +81,7 @@ export const config = {
     "/api/admin/:path*",
     // Sisanya: set CSP/redirect login, kecuali prefetch.
     {
-      source: "/((?!_next/static|_next/image|favicon.ico).*)",
+      source: "/((?!_next/static|_next/image|favicon.ico|favicon.svg|manifest.json).*)",
       missing: [
         { type: "header", key: "next-router-prefetch" },
         { type: "header", key: "purpose", value: "prefetch" },
