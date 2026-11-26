@@ -152,7 +152,7 @@ export async function GET(req: NextRequest) {
 
     const locCounts = new Map<string, number>();
     for (const e of pageViews) {
-      const city = typeof e.location === "string" && e.location.trim() ? e.location.trim() : "Indonesia";
+      const city = typeof e.location === "string" && e.location.trim() ? e.location.trim() : "Indonesia (lokasi kota tidak diketahui)";
       locCounts.set(city, (locCounts.get(city) ?? 0) + 1);
     }
     const locTotal = Array.from(locCounts.values()).reduce((a, b) => a + b, 0) || 0;
