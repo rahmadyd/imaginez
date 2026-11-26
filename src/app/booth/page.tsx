@@ -815,9 +815,11 @@ function ReviewScreen({ template, photos, sessionCode, onRetakeSlot, onRetakeAll
   const [serial] = useState(() => String(Math.floor(Math.random() * 9000) + 1000));
   const [dateLabel] = useState(() => {
     const d = new Date();
-    const dd = String(d.getDate()).padStart(2, "0");
-    const mm = String(d.getMonth() + 1).padStart(2, "0");
-    const yyyy = d.getFullYear();
+    // Jakarta time (WIB = UTC+7)
+    const jakarta = new Date(d.getTime() + 7 * 60 * 60 * 1000);
+    const dd = String(jakarta.getUTCDate()).padStart(2, "0");
+    const mm = String(jakarta.getUTCMonth() + 1).padStart(2, "0");
+    const yyyy = jakarta.getUTCFullYear();
     return `${dd}/${mm}/${yyyy}`;
   });
   const [qrOpen, setQrOpen] = useState(false);
@@ -935,7 +937,7 @@ function ReviewScreen({ template, photos, sessionCode, onRetakeSlot, onRetakeAll
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img src={qrDataUrl} alt={copy.s4.qrTitle} className="w-[220px] h-[220px] border border-brass/40 bg-paper" width={220} height={220} decoding="async" />
               <p className="font-body text-xs text-ink-2">{copy.s4.qrNote}</p>
-              {qrExpiresAt && <p className="font-mono text-[11px] text-ink-2">Expires {new Date(qrExpiresAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</p>}
+              {qrExpiresAt && <p className="font-mono text-[11px] text-ink-2">Expires {new Date(new Date(qrExpiresAt).getTime() + 7 * 60 * 60 * 1000).toUTCString().slice(17, 22)} WIB</p>}
               {qrUrl && <a href={qrUrl} target="_blank" rel="noreferrer" className="font-body text-xs uppercase tracking-[0.14em] underline underline-offset-4 text-gold hover:text-ink">{copy.s4.qrOpenLink}</a>}
             </>
           )}

@@ -11,7 +11,8 @@ export default async function SharePage({ params }: { params: Promise<{ id: stri
   if (!rec) notFound();
   // eslint-disable-next-line react-hooks/purity
   const expired = new Date(rec.expires_at).getTime() <= Date.now();
-  const expiresLabel = new Date(rec.expires_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" });
+  const jakartaExpires = new Date(new Date(rec.expires_at).getTime() + 7 * 60 * 60 * 1000);
+  const expiresLabel = `${String(jakartaExpires.getUTCHours()).padStart(2, "0")}:${String(jakartaExpires.getUTCMinutes()).padStart(2, "0")}:${String(jakartaExpires.getUTCSeconds()).padStart(2, "0")} WIB`;
   return (
     <main className="min-h-[100dvh] bg-paper text-ink flex items-center justify-center p-6">
       <div className="w-full max-w-[420px] border border-brass/60 bg-paper-2/40 p-6 flex flex-col gap-4 text-center">
