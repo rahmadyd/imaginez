@@ -6,6 +6,11 @@ import "./globals.css";
 export const metadata: Metadata = {
   title: "imaginez — The Cabaret Booth",
   description: "Step into the spotlight. A private portrait, rendered on your device.",
+  icons: {
+    icon: "/favicon.svg",
+    shortcut: "/favicon.svg",
+    apple: "/favicon.svg",
+  },
 };
 
 export default async function RootLayout({
