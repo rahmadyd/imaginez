@@ -445,7 +445,12 @@ function CaptureScreen({ template, photos, activeSlot, camera, onCapture, onCapt
   const playShutter = () => { beep(220, 0.03, "triangle", 0.05); beep(140, 0.06, "sine", 0.04); };
 
   useEffect(() => {
-    if (camera.status === "idle") void camera.start(undefined, { lowLight, flawless });
+    if (camera.status === "idle") {
+      void camera.start(undefined, { lowLight, flawless });
+    } else if (camera.status === "active") {
+      // Restart stream when lowLight changes (torch requires new getUserMedia)
+      void camera.start(undefined, { lowLight, flawless });
+    }
   }, [camera.status, camera.start, lowLight, flawless]);
 
   useEffect(() => {
@@ -632,8 +637,14 @@ function CaptureScreen({ template, photos, activeSlot, camera, onCapture, onCapt
         <div className="flex gap-2 flex-wrap justify-center">
           <button onClick={() => setAuto(true)} className={`px-3 py-2 border font-body text-[11px] uppercase tracking-[0.14em] min-h-[40px] ${auto ? "bg-booth-red text-ink border-gold" : "border-brass/50 text-ink-2"}`}>{copy.s3.auto}</button>
           <button onClick={() => setAuto(false)} className={`px-3 py-2 border font-body text-[11px] uppercase tracking-[0.14em] min-h-[40px] ${!auto ? "bg-booth-red text-ink border-gold" : "border-brass/50 text-ink-2"}`}>{copy.s3.manual}</button>
-          <button onClick={() => setLowLight(l => !l)} aria-pressed={lowLight} aria-label={copy.s3.lowLight} className={`px-3 py-2 border font-body text-[11px] uppercase tracking-[0.14em] min-h-[40px] ${lowLight ? "bg-booth-red text-ink border-gold" : "border-brass/50 text-ink-2"}`}>{copy.s3.lowLight}</button>
-          <button onClick={() => setFlawless(f => !f)} aria-pressed={flawless} aria-label={copy.s3.flawless} className={`px-3 py-2 border font-body text-[11px] uppercase tracking-[0.14em] min-h-[40px] ${flawless ? "bg-booth-red text-ink border-gold" : "border-brass/50 text-ink-2"}`}>{copy.s3.flawless}</button>
+          <button onClick={() => setLowLight(l => !l)} aria-pressed={lowLight} aria-label={copy.s3.lowLight} className={`px-3 py-2 border font-body text-[11px] uppercase tracking-[0.14em] min-h-[40px] flex items-center gap-1 ${lowLight ? "bg-booth-red text-ink border-gold" : "border-brass/50 text-ink-2"}`}>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2v6M12 16v6M4.93 4.93l4.24 4.24M14.83 14.83l4.24 4.24M2 12h6M16 12h6M4.93 19.07l4.24-4.24M14.83 9.17l4.24-4.24"/></svg>
+            {copy.s3.lowLight}
+          </button>
+          <button onClick={() => setFlawless(f => !f)} aria-pressed={flawless} aria-label={copy.s3.flawless} className={`px-3 py-2 border font-body text-[11px] uppercase tracking-[0.14em] min-h-[40px] flex items-center gap-1 ${flawless ? "bg-booth-red text-ink border-gold" : "border-brass/50 text-ink-2"}`}>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 8v4M12 16h.01"/></svg>
+            {copy.s3.flawless}
+          </button>
           <button onClick={() => { setMuted(m => !m); if (!muted) { try { audioRef.current?.suspend(); } catch { /* ignore */ } } else { ensureAudio(); } }} aria-pressed={muted} aria-label={muted ? copy.s3.soundOff : copy.s3.soundOn} className={`px-3 py-2 border font-body text-[11px] uppercase tracking-[0.14em] min-h-[40px] ${muted ? "border-brass/50 text-ink-2" : "border-gold/60 text-gold"}`}>{muted ? copy.s3.soundOff : copy.s3.soundOn}</button>
           {showPickerBtn && (
             <button onClick={async () => { await camera.refreshDevices(); setPickerOpen(true); }} disabled={!canSwitch} className="px-3 py-2 border border-brass/50 text-ink-2 font-body text-[11px] uppercase tracking-[0.14em] min-h-[48px] disabled:opacity-40">{copy.s3.chooseCamera}</button>
